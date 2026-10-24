@@ -4,23 +4,23 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Paper Mixed Reality (PMR)</title>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; background: #000; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; color: #fff; }
 
   /* ===== FORÇAR PAISAGEM (FALLBACK WEBVIEW) ===== */
-  #rotate-wrapper { position: fixed; inset: 0; z-index: 9999; pointer-events: none; display: none; }
-  #rotate-wrapper.force-landscape {
-    display: block;
-    width: 100vh;
-    height: 100vw;
+  #app-content[data-rotated="true"] {
+    width: 100vh !important;
+    height: 100vw !important;
+    transform: rotate(90deg);
+    transform-origin: center center;
+    position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(90deg);
-    transform-origin: center center;
-    pointer-events: auto;
+    margin-top: -50vw;
+    margin-left: -50vh;
+    overflow: hidden;
   }
 
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; filter: brightness(0.5); display: none; }
@@ -88,7 +88,7 @@
   .install-btn { background: #00ffaa; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; border: none; cursor: pointer; }
   .install-btn.installed { background: rgba(255,255,255,0.1); color: #888; }
 
-  /* CALCULADORA, BROWSER, MÚSICA (Estilos mantidos) */
+  /* CALCULADORA, BROWSER, MÚSICA */
   .calc-display { background: #000; padding: 24px; border-radius: 16px; text-align: right; font-size: 42px; font-family: monospace; margin-bottom: 12px; }
   .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .calc-btn { padding: 20px; background: rgba(255,255,255,0.1); border-radius: 16px; text-align: center; font-size: 22px; font-weight: bold; cursor: pointer; }
@@ -134,7 +134,7 @@
   .btn-apply.hv { background: #00cc88; }
 
   /* CURSOR E HUD */
-  #cursor { position: fixed; width: 20px; height: 20px; margin: -10px; border: 2px solid #fff; border-radius: 50%; z-index: 10; pointer-events: none; display: none; box-shadow: 0 0 10px rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); }
+  #cursor { position: fixed; width: 20px; height: 20px; margin: -10px; border: 2px solid #fff; border-radius: 50%; z-index: 10; pointer-events: none; display: none; box-shadow: 0 0 10px rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); transition: width 0.08s, height 0.08s, margin 0.08s; }
   #cursor.pinching { border-color: #00ffaa; background: rgba(0,255,170,0.3); width: 14px; height: 14px; margin: -7px; }
   #hud { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(20,22,30,0.8); backdrop-filter: blur(10px); color: #ccc; font-size: 13px; padding: 10px 20px; border-radius: 30px; z-index: 10; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); display: none; }
 
@@ -152,10 +152,6 @@
 </head>
 <body>
 
-<!-- FORCE LANDSCAPE WRAPPER (WebView fallback) -->
-<div id="rotate-wrapper"></div>
-
-<!-- CONTEÚDO DO APP -->
 <div id="app-content" style="width:100%; height:100%;">
 
   <div id="welcomeScreen">
@@ -274,7 +270,7 @@
           <div class="settings-section" style="text-align: center; padding: 30px;">
             <div style="font-size: 40px; margin-bottom: 10px;">🥽</div>
             <div style="font-size: 20px; font-weight: 800; margin-bottom: 5px;">Paper Mixed Reality</div>
-            <div style="font-size: 14px; color: #888;">Versão 3.6.0 - WebView Ready</div>
+            <div style="font-size: 14px; color: #888;">Versão 3.7.0 - Gyro Fixed</div>
           </div>
         </div>
       </div>
@@ -323,41 +319,96 @@ const savedApps = localStorage.getItem('pmr_installed');
 const system = { installed: savedApps ? JSON.parse(savedApps) : ['settings', 'browser'], activeApp: null };
 const settings = { highlight: true, bones: true, gyro: true };
 
-// ============ FORÇAR MODO PAISAGEM (WEBVIEW) ============
+// ============ QUATERNION HELPERS (sem Three.js) ============
+function quatFromEulerYXZ(x, y, z) {
+  const cx = Math.cos(x/2), sx = Math.sin(x/2);
+  const cy = Math.cos(y/2), sy = Math.sin(y/2);
+  const cz = Math.cos(z/2), sz = Math.sin(z/2);
+  return {
+    w: cx*cy*cz + sx*sy*sz,
+    x: sx*cy*cz - cx*sy*sz,
+    y: cx*sy*cz + sx*cy*sz,
+    z: cx*cy*sz - sx*sy*cz
+  };
+}
+function quatFromAxisAngle(ax, ay, az, angle) {
+  const h = angle / 2, s = Math.sin(h);
+  return { w: Math.cos(h), x: ax*s, y: ay*s, z: az*s };
+}
+function quatMul(a, b) {
+  return {
+    w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+    x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+    y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+    z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+  };
+}
+function quatToCSS(q) {
+  const { w, x, y, z } = q;
+  const x2 = x + x, y2 = y + y, z2 = z + z;
+  const xx = x*x2, xy = x*y2, xz = x*z2;
+  const yy = y*y2, yz = y*z2, zz = z*z2;
+  const wx = w*x2, wy = w*y2, wz = w*z2;
+  return `matrix3d(
+    ${1-(yy+zz)}, ${xy+wz},     ${xz-wy},     0,
+    ${xy-wz},     ${1-(xx+zz)}, ${yz+wx},     0,
+    ${xz+wy},     ${yz-wx},     ${1-(xx+yy)}, 0,
+    0,            0,            0,            1
+  )`;
+}
+function shortestAngleDiff(a, b) {
+  let d = a - b;
+  while (d >  180) d -= 360;
+  while (d < -180) d += 360;
+  return d;
+}
+
+// ============ ONE EURO FILTER ============
+class OneEuro {
+  constructor(minCutoff = 1.5, beta = 0.03) {
+    this.minCutoff = minCutoff;
+    this.beta = beta;
+    this.xPrev = null; this.dxPrev = 0; this.tPrev = null;
+  }
+  _alpha(cutoff, dt) { const tau = 1/(2*Math.PI*cutoff); return 1/(1+tau/dt); }
+  filter(x, t) {
+    if (this.xPrev == null) { this.xPrev = x; this.tPrev = t; return x; }
+    const dt = Math.max(1e-3, (t - this.tPrev) / 1000);
+    const dx = (x - this.xPrev) / dt;
+    const aD = this._alpha(1.0, dt);
+    const dxHat = aD * dx + (1-aD) * this.dxPrev;
+    const cutoff = this.minCutoff + this.beta * Math.abs(dxHat);
+    const a = this._alpha(cutoff, dt);
+    const xHat = a * x + (1-a) * this.xPrev;
+    this.xPrev = xHat; this.dxPrev = dxHat; this.tPrev = t;
+    return xHat;
+  }
+}
+const filtX = new OneEuro(1.5, 0.03);
+const filtY = new OneEuro(1.5, 0.03);
+
+// ============ FORÇAR MODO PAISAGEM ============
 async function forceLandscapeMode() {
   try {
-    // Tenta o método nativo padrão (funciona em Chrome/Safari)
     if (document.documentElement.requestFullscreen) {
-      await document.documentElement.requestFullscreen();
+      await document.documentElement.requestFullscreen().catch(() => {});
     }
     if (screen.orientation && screen.orientation.lock) {
       await screen.orientation.lock('landscape');
-      console.log('✅ Paisagem forçada via screen.orientation.lock');
+      console.log('✅ Paisagem via screen.orientation.lock');
       return;
     }
   } catch (e) {
-    console.warn('Lock nativo falhou, aplicando fallback CSS para WebView:', e);
+    console.warn('Lock nativo falhou:', e);
   }
-
-  // FALLBACK: Se estiver numa WebView (APK) ou navegador que bloqueia o lock,
-  // rodamos o container inteiro 90 graus se estiver em modo retrato.
   if (window.innerHeight > window.innerWidth) {
     const wrapper = $('#app-content');
-    wrapper.style.width = '100vh';
-    wrapper.style.height = '100vw';
-    wrapper.style.transform = 'rotate(90deg)';
-    wrapper.style.transformOrigin = 'center center';
-    wrapper.style.position = 'fixed';
-    wrapper.style.top = '50%';
-    wrapper.style.left = '50%';
-    wrapper.style.marginTop = '-50vw';
-    wrapper.style.marginLeft = '-50vh';
-    wrapper.style.overflow = 'hidden';
-    console.log('✅ Fallback CSS aplicado: UI rodada 90°');
+    wrapper.dataset.rotated = 'true';
+    console.log('✅ Fallback CSS: UI rodada 90°');
   }
 }
 
-// ============ SELEÇÃO DE IDIOMA ============
+// ============ IDIOMAS ============
 let currentLang = 'pt';
 const translations = {
   pt: { start: 'Iniciar Experiência', text: 'Coloca o telemóvel no papelão, ajusta o foco e prepara-te.' },
@@ -373,8 +424,6 @@ document.querySelectorAll('.lang-btn').forEach(btn => {
     overlay.classList.remove('hidden');
     $('#startBtn').textContent = translations[currentLang].start;
     $('#overlay-text').textContent = translations[currentLang].text;
-    
-    // Pede paisagem logo no primeiro clique
     await forceLandscapeMode();
   };
 });
@@ -389,7 +438,6 @@ setInterval(() => {
 
 // ============ HOLD SYSTEM ============
 let hoverTarget = null; let hoverStartTime = 0; const HOLD_DELAY = 2500; let holdReq = null;
-let prevHandY = 0.5; let prevScrollTime = 0; let isScrolling = false;
 
 function startHold(element, progressBar, callback, delay = HOLD_DELAY) {
   hoverTarget = element; hoverStartTime = Date.now();
@@ -403,44 +451,46 @@ function startHold(element, progressBar, callback, delay = HOLD_DELAY) {
   };
   updateHold();
 }
-function resetHold() { if (hoverTarget) { const prog = hoverTarget.querySelector('.hold-progress'); if (prog) prog.style.width = '0%'; } hoverTarget = null; if (holdReq) cancelAnimationFrame(holdReq); }
+function resetHold() {
+  if (hoverTarget) {
+    const prog = hoverTarget.querySelector('.hold-progress');
+    if (prog) prog.style.width = '0%';
+  }
+  hoverTarget = null;
+  if (holdReq) cancelAnimationFrame(holdReq);
+}
 
-// ============ GIROSCÓPIO (MATEMÁTICA CORRETA) ============
+// ============ GIROSCÓPIO ============
 let gyroEnabled = false;
 let baseAlpha = null;
 
+function getScreenAngle() {
+  if (screen.orientation && typeof screen.orientation.angle === 'number')
+    return screen.orientation.angle;
+  if (typeof window.orientation === 'number') return window.orientation;
+  return 0;
+}
+
 function onOrientation(e) {
-  if (!settings.gyro || e.alpha === null) return;
+  if (!settings.gyro || e.alpha == null || e.beta == null || e.gamma == null) return;
   if (baseAlpha === null) baseAlpha = e.alpha;
+
   const r = Math.PI / 180;
-  const alpha = (e.alpha - baseAlpha) * r;
-  const beta = e.beta * r;
+  const alpha = shortestAngleDiff(e.alpha, baseAlpha) * r;
+  const beta  = e.beta  * r;
   const gamma = e.gamma * r;
 
-  const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
-  const quaternion = new THREE.Quaternion().setFromEuler(euler);
-  const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); 
-  quaternion.multiply(q1);
+  const qDevice = quatFromEulerYXZ(beta, alpha, -gamma);
+  const qTilt   = quatFromAxisAngle(1, 0, 0, Math.PI / 2 * 0.9);
+  const qScreen = quatFromAxisAngle(0, 0, 1, -getScreenAngle() * r);
 
-  let screenAngle = 0;
-  if (screen.orientation) screenAngle = screen.orientation.angle;
-  else if (window.orientation !== undefined) screenAngle = window.orientation;
-  
-  if (screenAngle !== 0) {
-    const qScreen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenAngle));
-    quaternion.premultiply(qScreen);
-  }
-
-  // Usamos um objeto wrapper para a rotação, mas como o CSS3D usa transform, 
-  // aplicamos num objeto "virtual" que passamos para o worldGroup.
-  // Neste código simplificado, aplicamos diretamente no CSS do worldGroup.
-  const eulerCSS = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
-  worldGroup.style.transform = `rotateX(${THREE.MathUtils.radToDeg(eulerCSS.x)}deg) rotateY(${THREE.MathUtils.radToDeg(eulerCSS.y)}deg) rotateZ(${THREE.MathUtils.radToDeg(eulerCSS.z)}deg)`;
+  const qFinal = quatMul(quatMul(qScreen, qTilt), qDevice);
+  worldGroup.style.transform = quatToCSS(qFinal);
 }
 
 // ============ UI PANELS ============
 const panels = { home: $('#panel-home'), store: $('#panel-store'), drawer: $('#panel-drawer'), browser: $('#panel-browser'), calc: $('#panel-calc'), settings: $('#panel-settings'), music: $('#panel-music') };
-function closeAllPanels() { Object.values(panels).forEach(p => p.classList.add('hidden')); $('#vr-keyboard').classList.remove('active'); }
+function closeAllPanels() { Object.values(panels).forEach(p => p.classList.add('hidden')); }
 function openPanel(name) {
   closeAllPanels();
   if (panels[name]) { panels[name].classList.remove('hidden'); system.activeApp = name; }
@@ -454,7 +504,11 @@ function installApp(appId) {
   }
 }
 function openApp(appId) {
-  if (appId === 'calc') openPanel('calc'); else if (appId === 'store') openPanel('store'); else if (appId === 'settings') openPanel('settings'); else if (appId === 'music') openPanel('music'); else if (appId === 'browser') openPanel('browser');
+  if (appId === 'calc') openPanel('calc');
+  else if (appId === 'store') openPanel('store');
+  else if (appId === 'settings') openPanel('settings');
+  else if (appId === 'music') openPanel('music');
+  else if (appId === 'browser') openPanel('browser');
 }
 
 function renderStore() {
@@ -471,13 +525,17 @@ function renderDock() {
   const dock = $('#dock-icons'); dock.innerHTML = '';
   const storeIcon = document.createElement('div'); storeIcon.className = 'dock-icon'; storeIcon.innerHTML = `<svg viewBox="0 0 24 24" style="fill:#00ffaa">${APPS_DB.store.icon}</svg>`; storeIcon.onclick = () => openApp('store'); dock.appendChild(storeIcon);
   system.installed.forEach(id => {
-    const app = APPS_DB[id]; const el = document.createElement('div'); el.className = 'dock-icon'; el.innerHTML = `<svg viewBox="0 0 24 24" style="fill:${app.color}">${app.icon}</svg>`; el.onclick = () => openApp(id); dock.appendChild(el);
+    const app = APPS_DB[id];
+    if (!app) return;
+    const el = document.createElement('div'); el.className = 'dock-icon'; el.innerHTML = `<svg viewBox="0 0 24 24" style="fill:${app.color}">${app.icon}</svg>`; el.onclick = () => openApp(id); dock.appendChild(el);
   });
 }
 function renderDrawer() {
   const list = $('#drawer-list'); list.innerHTML = '';
   system.installed.forEach(id => {
-    const app = APPS_DB[id]; const el = document.createElement('div'); el.className = 'app-card';
+    const app = APPS_DB[id];
+    if (!app) return;
+    const el = document.createElement('div'); el.className = 'app-card';
     el.innerHTML = `<div class="app-left"><div class="app-icon-container" style="background:${app.color}"><svg viewBox="0 0 24 24">${app.icon}</svg></div><div class="app-info"><span class="app-name">${app.name}</span><span class="app-package">${app.pkg}</span></div></div>`;
     el.dataset.appId = id;
     list.appendChild(el);
@@ -502,7 +560,6 @@ async function searchWeb(query) {
     for (const result of results) {
       if (count >= 10) break;
       const linkEl = result.querySelector('.result__a');
-      const snippetEl = result.querySelector('.result__snippet');
       if (linkEl && linkEl.href) {
         const el = document.createElement('a');
         el.className = 'browser-item';
@@ -521,7 +578,7 @@ async function searchWeb(query) {
 $('#browser-search-btn').onclick = () => { const q = $('#browser-query').value.trim(); if (q) searchWeb(q); };
 $('#browser-query').onkeypress = (e) => { if (e.key === 'Enter') { const q = $('#browser-query').value.trim(); if (q) searchWeb(q); } };
 
-// ============ SUPORTE .EMR ============
+// ============ .EMR ============
 $('#btn-load-emr').onclick = () => { $('#emr-file-input').click(); };
 $('#emr-file-input').onchange = (e) => {
   const file = e.target.files[0];
@@ -529,9 +586,8 @@ $('#emr-file-input').onchange = (e) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
-      const content = ev.target.result;
-      const appData = JSON.parse(content);
-      if (!appData.id || !appData.name || !appData.pkg) throw new Error('Faltam campos obrigatórios (id, name, pkg).');
+      const appData = JSON.parse(ev.target.result);
+      if (!appData.id || !appData.name || !appData.pkg) throw new Error('Faltam campos (id, name, pkg).');
       APPS_DB[appData.id] = { id: appData.id, name: appData.name, pkg: appData.pkg, color: appData.color || '#00ffaa', theme: 'EMR', icon: appData.icon || '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>' };
       installApp(appData.id);
       hud.textContent = `✅ ${appData.name} instalado!`;
@@ -558,8 +614,14 @@ function loadTrack(index) {
   if (isPlaying) musicAudio.play().catch(e => console.log(e));
 }
 function togglePlay() {
-  if (isPlaying) { musicAudio.pause(); isPlaying = false; $('#music-play').innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
-  else { musicAudio.play().catch(e => hud.textContent = 'Erro'); isPlaying = true; $('#music-play').innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; }
+  if (isPlaying) {
+    musicAudio.pause(); isPlaying = false;
+    $('#music-play').innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  } else {
+    musicAudio.play().catch(e => hud.textContent = 'Erro');
+    isPlaying = true;
+    $('#music-play').innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+  }
 }
 $('#music-play').onclick = togglePlay;
 $('#music-next').onclick = () => { currentTrack = (currentTrack + 1) % musicTracks.length; loadTrack(currentTrack); if (!isPlaying) togglePlay(); };
@@ -582,6 +644,10 @@ $('#btn-apply-settings').onclick = () => {
   settings.highlight = $('#toggle-highlight').dataset.state === 'on';
   settings.bones = $('#toggle-bones').dataset.state === 'on';
   settings.gyro = $('#toggle-gyro').dataset.state === 'on';
+  if (!settings.gyro) {
+    worldGroup.style.transform = '';
+    baseAlpha = null;
+  }
   hud.textContent = `✅ Aplicado!`;
   setTimeout(() => openPanel('home'), 500);
 };
@@ -592,7 +658,17 @@ document.querySelectorAll('.calc-btn').forEach(btn => {
   btn.onclick = () => {
     const c = btn.dataset.c;
     if (c === 'C') { calcValue = '0'; calcPrev = null; calcOp = null; }
-    else if (c === '=') { if (calcPrev !== null && calcOp) { const a = parseFloat(calcPrev), b = parseFloat(calcValue); let res = 0; if (calcOp === '+') res = a + b; if (calcOp === '-') res = a - b; if (calcOp === '*') res = a * b; if (calcOp === '/') res = a / b; calcValue = String(res); calcPrev = null; calcOp = null; } }
+    else if (c === '=') {
+      if (calcPrev !== null && calcOp) {
+        const a = parseFloat(calcPrev), b = parseFloat(calcValue);
+        let res = 0;
+        if (calcOp === '+') res = a + b;
+        if (calcOp === '-') res = a - b;
+        if (calcOp === '*') res = a * b;
+        if (calcOp === '/') res = a / b;
+        calcValue = String(res); calcPrev = null; calcOp = null;
+      }
+    }
     else if (['+','-','*','/'].includes(c)) { calcPrev = calcValue; calcOp = c; calcValue = '0'; }
     else { calcValue = calcValue === '0' ? c : calcValue + c; }
     $('#calc-screen').textContent = calcValue;
@@ -603,6 +679,7 @@ document.querySelectorAll('.calc-btn').forEach(btn => {
 let handLandmarker = null;
 let lastHandTime = 0;
 const DETECT_INTERVAL = 1000 / 24;
+let lastClickGlobal = 0;
 
 async function initHandLandmarker() {
   const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
@@ -626,11 +703,15 @@ function drawHandStroke(landmarks) {
   const points = landmarks.map(lm => ({ x: lm.x * window.innerWidth, y: lm.y * window.innerHeight }));
   points.sort((a, b) => a.x - b.x || a.y - b.y);
   const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-  const lower = []; for (let p of points) { while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop(); lower.push(p); }
-  const upper = []; for (let i = points.length - 1; i >= 0; i--) { let p = points[i]; while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop(); upper.push(p); }
+  const lower = [];
+  for (let p of points) { while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop(); lower.push(p); }
+  const upper = [];
+  for (let i = points.length - 1; i >= 0; i--) { let p = points[i]; while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop(); upper.push(p); }
   const hull = lower.slice(0, -1).concat(upper.slice(0, -1));
 
-  ctx.beginPath(); hull.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)); ctx.closePath();
+  ctx.beginPath();
+  hull.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
 
   ctx.shadowColor = '#a855f7';
   ctx.shadowBlur = 25;
@@ -649,68 +730,110 @@ function drawHandStroke(landmarks) {
 
 function onHandResults(results) {
   const landmarks = results.landmarks && results.landmarks[0];
-  if (!landmarks) { hud.textContent = 'Mostre a mão...'; cursorEl.style.display = 'none'; handCanvas.style.display = 'none'; resetHold(); return; }
+  if (!landmarks) {
+    hud.textContent = 'Mostre a mão...';
+    cursorEl.style.display = 'none';
+    handCanvas.style.display = 'none';
+    resetHold();
+    return;
+  }
   
-  handCanvas.style.display = 'block'; drawHandStroke(landmarks);
+  handCanvas.style.display = 'block';
+  drawHandStroke(landmarks);
   
   const indexTip = landmarks[8];
+  const now = performance.now();
   
-  // CORREÇÃO WEBVIEW: Se estiver no fallback rotacionado, invertemos X e Y do cursor
-  let x = indexTip.x * window.innerWidth;
-  let y = indexTip.y * window.innerHeight;
+  // Coordenadas filtradas (para o cursor)
+  const rawX = indexTip.x * window.innerWidth;
+  const rawY = indexTip.y * window.innerHeight;
+  const x = filtX.filter(rawX, now);
+  const y = filtY.filter(rawY, now);
 
-  const isRotated = $('#app-content').style.transform.includes('rotate');
+  // Conversão para o modo rotacionado (fallback CSS)
+  const appContent = $('#app-content');
+  const isRotated = appContent.dataset.rotated === 'true';
+  let cssX = x, cssY = y;
+
   if (isRotated) {
-    // Se a tela está rodada 90°, o Y do dedo vira X e vice-versa
-    const temp = x;
-    x = window.innerWidth - y;
-    y = temp;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const cx = W / 2, cy = H / 2;
+    const dx = x - cx, dy = y - cy;
+    cssX = cx - dy;
+    cssY = cy + dx;
   }
 
-  cursorEl.style.display = 'block'; cursorEl.style.left = x + 'px'; cursorEl.style.top = y + 'px';
+  cursorEl.style.display = 'block';
+  cursorEl.style.left = x + 'px';
+  cursorEl.style.top  = y + 'px';
 
   const thumbTip = landmarks[4];
   const dist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y, (indexTip.z || 0) - (thumbTip.z || 0));
   const isPinching = dist < 0.05;
   if (isPinching) cursorEl.classList.add('pinching'); else cursorEl.classList.remove('pinching');
 
-  const el = document.elementFromPoint(x, y);
+  const el = document.elementFromPoint(cssX, cssY);
   
-  // Lógica de Drag da Dock
-  if (isPinching && (el === $('#grab-bar') || el.closest('#grab-bar'))) {
-    if (!window.isDraggingDock) { window.isDraggingDock = true; $('#grab-bar').classList.add('hv'); }
-  } else {
-    if (window.isDraggingDock && !isPinching) { window.isDraggingDock = false; $('#grab-bar').classList.remove('hv'); }
+  // Drag da Dock
+  const isOverDock = el && (el.id === 'grab-bar' || el.closest('#grab-bar'));
+  if (isPinching && isOverDock) {
+    if (!window.isDraggingDock) {
+      window.isDraggingDock = true;
+      $('#grab-bar').classList.add('hv');
+    }
+  } else if (window.isDraggingDock && !isPinching) {
+    window.isDraggingDock = false;
+    $('#grab-bar').classList.remove('hv');
   }
 
-  if (window.isDraggingDock) { 
+  if (window.isDraggingDock) {
     const dock = $('#dock-wrapper');
-    dock.style.left = (x - 320) + 'px'; 
-    dock.style.bottom = (window.innerHeight - y - 80) + 'px'; 
-    return; 
+    dock.style.left = (cssX - 320) + 'px';
+    dock.style.bottom = (window.innerHeight - cssY - 80) + 'px';
+    return;
   }
 
   const btn = el ? el.closest('.panel-btn, .app-card, .dock-icon, .dock-menu-btn, .panel-close, .calc-btn, .install-btn, .toggle, .btn-apply, .settings-tab, .browser-btn, .browser-item, .music-btn') : null;
   document.querySelectorAll('.hv').forEach(b => b.classList.remove('hv'));
   
-  if (btn && !isScrolling) {
+  if (btn) {
     btn.classList.add('hv');
     let progBar = btn.querySelector('.hold-progress');
-    const isQuickAction = btn.classList.contains('dock-icon') || btn.classList.contains('dock-menu-btn') || btn.classList.contains('panel-close') || btn.classList.contains('calc-btn') || btn.classList.contains('install-btn') || btn.classList.contains('toggle') || btn.classList.contains('btn-apply') || btn.classList.contains('settings-tab') || btn.classList.contains('browser-btn') || btn.classList.contains('music-btn');
+    const isQuickAction = btn.classList.contains('dock-icon')
+      || btn.classList.contains('dock-menu-btn')
+      || btn.classList.contains('panel-close')
+      || btn.classList.contains('calc-btn')
+      || btn.classList.contains('install-btn')
+      || btn.classList.contains('toggle')
+      || btn.classList.contains('btn-apply')
+      || btn.classList.contains('settings-tab')
+      || btn.classList.contains('browser-btn')
+      || btn.classList.contains('music-btn');
     
     let shouldClick = false;
-    if (isQuickAction || isPinching) { 
-      if (!btn.dataset.lastClick || Date.now() - btn.dataset.lastClick > 500) { btn.dataset.lastClick = Date.now(); shouldClick = true; }
-    } else { 
-      if (hoverTarget !== btn) { 
-        if (!progBar) { progBar = document.createElement('div'); progBar.className = 'hold-progress'; btn.appendChild(progBar); } 
-        startHold(btn, progBar, () => { if (btn.id === 'btn-gyro') { /* toggle */ } }); 
-      } 
+    if (isQuickAction || isPinching) {
+      const cooldown = isQuickAction ? 300 : 600;
+      if (Date.now() - lastClickGlobal > cooldown) {
+        lastClickGlobal = Date.now();
+        shouldClick = true;
+      }
+    } else {
+      if (hoverTarget !== btn) {
+        if (!progBar) { progBar = document.createElement('div'); progBar.className = 'hold-progress'; btn.appendChild(progBar); }
+        startHold(btn, progBar, () => {});
+      }
     }
     
     if (shouldClick) {
-      if (btn.classList.contains('install-btn')) { const appId = btn.dataset.app; if (!system.installed.includes(appId)) installApp(appId); else openApp(appId); }
-      else if (btn.classList.contains('dock-icon')) { const idx = Array.from($('#dock-icons').children).indexOf(btn); if (idx === 0) openApp('store'); else openApp(system.installed[idx - 1]); }
+      if (btn.classList.contains('install-btn')) {
+        const appId = btn.dataset.app;
+        if (!system.installed.includes(appId)) installApp(appId); else openApp(appId);
+      }
+      else if (btn.classList.contains('dock-icon')) {
+        const idx = Array.from($('#dock-icons').children).indexOf(btn);
+        if (idx === 0) openApp('store'); else openApp(system.installed[idx - 1]);
+      }
       else if (btn.id === 'btn-menu') { renderDrawer(); openPanel('drawer'); }
       else if (btn.id === 'btn-load-emr') { $('#emr-file-input').click(); }
       else if (btn.classList.contains('music-btn')) { btn.click(); }
@@ -720,15 +843,17 @@ function onHandResults(results) {
       else if (btn.classList.contains('toggle')) { btn.click(); }
       else if (btn.classList.contains('settings-tab')) { btn.click(); }
       else if (btn.classList.contains('panel-close')) {
-        if (btn.id === 'close-calc') openPanel('home'); else if (btn.id === 'close-store') openPanel('home'); else if (btn.id === 'close-drawer') openPanel('home'); else if (btn.id === 'close-browser') openPanel('home'); else if (btn.id === 'close-settings') openPanel('home'); else if (btn.id === 'close-music') openPanel('home'); else if (btn.id === 'close-home') closeAllPanels();
+        if (btn.id === 'close-home') closeAllPanels(); else openPanel('home');
       }
       else if (btn.classList.contains('calc-btn')) { btn.click(); }
       else if (btn.classList.contains('app-card')) { openApp(btn.dataset.appId); }
     }
-  } else if (!btn) { resetHold(); }
+  } else {
+    resetHold();
+  }
 }
 
-// ============ INICIALIZAÇÃO DO JOGO ============
+// ============ INICIALIZAÇÃO ============
 document.getElementById('startBtn').addEventListener('click', async () => {
   document.getElementById('overlay').style.display = 'none';
   hud.style.display = 'block';
