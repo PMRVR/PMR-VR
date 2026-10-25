@@ -4,31 +4,18 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Blocky Tag</title>
-<script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
-  
-  /* O Canvas 3D fica no fundo e não bloqueia cliques */
-  canvas { 
-    display: block; 
-    position: fixed; 
-    inset: 0; 
-    z-index: 0; 
-    pointer-events: none; 
-  }
-
-  /* UI Fica por cima de tudo */
-  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud { z-index: 100; }
-
+  canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: block; }
+  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud, #version { z-index: 100; }
   #menu { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #menu.hidden { display: none; }
   #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
   #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 20px; width: 250px; }
   #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 8px; border-radius: 10px; cursor: pointer; width: 250px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
   #menu button:hover { border-color: #00ffaa; background: #333; }
-  
   #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
   #lobbyBox.show { display: flex; }
   #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; }
@@ -37,20 +24,15 @@
   #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; }
   #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; max-height: 200px; overflow-y: auto; }
   #playerList li { padding: 8px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #222; }
-  
   .voice-icon { width: 12px; height: 12px; border-radius: 50%; background: #555; }
   .voice-icon.talking { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
   .voice-icon.listening { background: #ffcc00; }
-  
   #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
   #startGameBtn.show { display: flex; }
-  
   #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
-  
   #settingsBtn { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; pointer-events: none; }
-  
   #settingsPanel { position: fixed; top: 60px; right: 10px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
   #settingsPanel.show { display: flex; }
   #settingsContent { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -58,14 +40,12 @@
   .setting-options { display: flex; gap: 4px; }
   .setting-options button { background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; flex: 1; }
   .setting-options button.active { background: #00ffaa; color: #000; border-color: #00ffaa; font-weight: bold; }
-  
   #voiceStatus { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 10px; }
   #voiceDot { width: 10px; height: 10px; border-radius: 50%; background: #ff4444; }
   .active-voice { background: #00ffaa !important; color: #000 !important; border-color: #00ffaa !important; }
   #toggleMicBtn { width: 100%; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
   #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
-  
   #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: none; align-items: center; }
   .toast { background: rgba(20, 20, 20, 0.9); border: 1px solid #00ffaa; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; animation: slideUp 0.3s ease-out; display: flex; align-items: center; gap: 5px; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -78,44 +58,44 @@
 <div id="menu">
   <h1>Blocky Tag</h1>
   <input type="text" id="usernameInput" placeholder="O teu nome..." maxlength="15" />
-  <button id="btnMultiplayer"><i data-lucide="globe"></i> Criar Sala</button>
-  <button id="btnSolo"><i data-lucide="gamepad-2"></i> Jogar Solo</button>
+  <button id="btnMultiplayer">Criar Sala</button>
+  <button id="btnSolo">Jogar Solo</button>
   <div id="lobbyBox">
     <h3>Link para Amigo</h3>
     <div id="roomCodeDisplay"></div>
     <input type="text" id="shareLinkInput" readonly />
-    <button id="copyBtn"><i data-lucide="copy"></i> Copiar Link</button>
+    <button id="copyBtn">Copiar Link</button>
     <ul id="playerList"></ul>
-    <button id="startGameBtn"><i data-lucide="rocket"></i> Entrar no Jogo</button>
+    <button id="startGameBtn">Entrar no Jogo</button>
   </div>
 </div>
 
 <div id="hud">A carregar...</div>
-<button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v8.2.0 - UI Fix</div>
+<button id="settingsBtn">⚙️</button>
+<div id="version">v9.0.0</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
     <div class="setting-group">
-      <h3><i data-lucide="monitor"></i> Gráficos</h3>
+      <h3>Gráficos</h3>
       <div class="setting-options" id="resOptions">
         <button data-res="potato">P</button><button data-res="low">L</button><button data-res="medium" class="active">M</button><button data-res="high">H</button>
       </div>
     </div>
     <div class="setting-group">
-      <h3><i data-lucide="hand"></i> Tracking FPS</h3>
+      <h3>Tracking FPS</h3>
       <div class="setting-options" id="fpsOptions">
         <button data-fps="10">10</button><button data-fps="20" class="active">20</button><button data-fps="30">30</button><button data-fps="60">60</button>
       </div>
     </div>
     <div class="setting-group">
-      <h3><i data-lucide="mic"></i> Voice Chat</h3>
+      <h3>Voice Chat</h3>
       <div id="voiceStatus"><div id="voiceDot"></div><span id="voiceText">Desligado</span></div>
-      <button id="toggleMicBtn"><i data-lucide="mic-off"></i> Ativar</button>
-      <button id="leaveRoomBtn"><i data-lucide="log-out"></i> Sair da Sala</button>
+      <button id="toggleMicBtn">Ativar</button>
+      <button id="leaveRoomBtn">Sair da Sala</button>
     </div>
   </div>
-  <button id="closeSettings"><i data-lucide="x"></i> Fechar</button>
+  <button id="closeSettings">Fechar</button>
 </div>
 
 <div id="toastContainer"></div>
@@ -135,20 +115,17 @@ import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@m
 import { io } from "socket.io-client";
 import { CONFIG } from './configs.js';
 
-lucide.createIcons();
-
 let socket = null, roomCode = null, isMultiplayer = false, myUsername = "Jogador", remotePlayers = {}, gameStarted = false, myMuted = true, localStream = null;
 const peerConnections = {};
 let renderer;
 const settings = { res: localStorage.getItem('pmr_res') || 'medium', fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10) };
 
-function showToast(message, icon = 'info') {
+function showToast(message) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.innerHTML = `<i data-lucide="${icon}" style="width:14px;height:14px;color:#00ffaa"></i> ${message}`;
+  toast.textContent = message;
   container.appendChild(toast);
-  lucide.createIcons();
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
@@ -198,7 +175,11 @@ for (let i = 0; i < 5; i++) {
 
 const myBodyGroup = new THREE.Group();
 const bigHead = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+bigHead.position.y = 0.4; 
 myBodyGroup.add(bigHead);
+const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
+belly.position.y = -0.4; 
+myBodyGroup.add(belly);
 scene.add(myBodyGroup);
 
 const handGeo = new THREE.BoxGeometry(CONFIG.HAND_SIZE, CONFIG.HAND_SIZE, CONFIG.HAND_SIZE);
@@ -252,11 +233,10 @@ async function toggleMicrophone() {
       audioAnalyser = audioContext.createAnalyser(); audioAnalyser.fftSize = 256;
       audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
       source.connect(audioAnalyser);
-      document.getElementById('toggleMicBtn').innerHTML = `<i data-lucide="mic"></i> Desativar`;
+      document.getElementById('toggleMicBtn').textContent = "Desativar";
       document.getElementById('toggleMicBtn').classList.add('active-voice');
       document.getElementById('voiceDot').style.background = '#00ffaa';
       document.getElementById('voiceText').textContent = "A falar...";
-      lucide.createIcons();
       if (socket) socket.emit('toggleMute', { roomCode, muted: false });
       for (let id in remotePlayers) createPeerConnection(id, true);
     } catch (err) { document.getElementById('voiceDot').style.background = '#ff4444'; document.getElementById('voiceText').textContent = "Bloqueado"; }
@@ -264,11 +244,10 @@ async function toggleMicrophone() {
     myMuted = true;
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (audioContext) { audioContext.close(); audioContext = null; audioAnalyser = null; }
-    document.getElementById('toggleMicBtn').innerHTML = `<i data-lucide="mic-off"></i> Ativar`;
+    document.getElementById('toggleMicBtn').textContent = "Ativar";
     document.getElementById('toggleMicBtn').classList.remove('active-voice');
     document.getElementById('voiceDot').style.background = '#ff4444';
     document.getElementById('voiceText').textContent = "Silenciado";
-    lucide.createIcons();
     if (socket) socket.emit('toggleMute', { roomCode, muted: true });
   }
 }
@@ -322,11 +301,12 @@ function connectToServer() {
     document.getElementById('lobbyBox').classList.add('show');
     updatePlayerList({}, true);
   });
-  socket.on('currentPlayers', (players) => { updatePlayerList(players, false); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username); }); });
-  socket.on('newPlayer', (player) => { updatePlayerList({ [player.id]: player }, true); addRemotePlayer(player.id, player.position, player.username); showToast(`${player.username} entrou!`, 'user-plus'); });
+  socket.on('currentPlayers', (players) => { updatePlayerList(players, false); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY); }); });
+  socket.on('newPlayer', (player) => { updatePlayerList({ [player.id]: player }, true); addRemotePlayer(player.id, player.position, player.username, player.rotY); showToast(`${player.username} entrou!`); });
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
+  socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.rotation.y = data.rotY; });
   socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) drawNametag(data.id, !data.muted); });
-  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`, 'user-minus'); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList({}, true); } });
+  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList({}, true); } });
   socket.on('webrtc-offer', async (data) => { const pc = createPeerConnection(data.sender, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('webrtc-answer', { target: data.sender, answer }); });
   socket.on('webrtc-answer', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); });
   socket.on('webrtc-ice-candidate', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); });
@@ -341,13 +321,24 @@ function updatePlayerList(players, isNew) {
   }
 }
 
-function addRemotePlayer(id, position, username) {
+function addRemotePlayer(id, position, username, rotY) {
   const group = new THREE.Group();
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
-  group.add(mesh);
+  
+  const head = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+  head.position.y = 0.4; 
+  group.add(head);
+
+  const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
+  belly.position.y = -0.4; 
+  group.add(belly);
+
   const tag = createNametag(id, username); group.add(tag);
-  group.position.set(position.x, position.y, position.z); scene.add(group);
-  remotePlayers[id] = { group, username }; updatePlayerList({}, true);
+  group.position.set(position.x, position.y, position.z); 
+  group.rotation.y = rotY || 0;
+  scene.add(group);
+  
+  remotePlayers[id] = { group, username }; 
+  updatePlayerList({}, true);
 }
 
 let lastTime = performance.now();
@@ -418,10 +409,15 @@ function loop() {
     if (!colliding) isGrounded = false;
 
     camera.position.copy(playerPos);
-    myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, 0.2, 0));
+    
+    myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
+    myBodyGroup.rotation.y = camera.rotation.y; 
 
     if (socket && isMultiplayer && roomCode) {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
+      const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
+      const bodyRotY = Math.atan2(forward.x, forward.z);
+      socket.emit('updateRotation', { roomCode, rotY: bodyRotY });
     }
 
     if (handLandmarker && (now - lastHandDetectTime > (1000 / settings.fps))) {
@@ -483,12 +479,12 @@ function leaveRoom() {
   gameStarted = false; isMultiplayer = false; roomCode = null;
   document.getElementById('menu').classList.remove('hidden');
   document.getElementById('settingsPanel').classList.remove('show');
-  showToast("Saíste da sala.", 'log-out');
+  showToast("Saíste da sala.");
 }
 
 document.getElementById('btnMultiplayer').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); connectToServer(); };
 document.getElementById('btnSolo').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); gameStarted = true; document.getElementById('menu').classList.add('hidden'); };
-document.getElementById('copyBtn').onclick = () => { const link = document.getElementById('shareLinkInput').value; navigator.clipboard.writeText(link).then(() => { document.getElementById('copyBtn').innerHTML = `<i data-lucide="check"></i> Copiado!`; lucide.createIcons(); setTimeout(() => { document.getElementById('copyBtn').innerHTML = `<i data-lucide="copy"></i> Copiar Link`; lucide.createIcons(); }, 2000); }); };
+document.getElementById('copyBtn').onclick = () => { const link = document.getElementById('shareLinkInput').value; navigator.clipboard.writeText(link).then(() => { document.getElementById('copyBtn').textContent = "Copiado!"; setTimeout(() => { document.getElementById('copyBtn').textContent = "Copiar Link"; }, 2000); }); };
 document.getElementById('startGameBtn').onclick = () => { gameStarted = true; document.getElementById('menu').classList.add('hidden'); };
 document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('show');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').classList.remove('show');
@@ -503,11 +499,12 @@ if (roomParam) {
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
   socket = io(serverUrl);
   socket.on('connect', () => { socket.emit('joinRoom', { roomCode, username: myUsername }); document.getElementById('menu').classList.add('hidden'); gameStarted = true; updatePlayerList({}, true); });
-  socket.on('currentPlayers', (players) => { updatePlayerList(players, true); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username); }); });
-  socket.on('newPlayer', (player) => { addRemotePlayer(player.id, player.position, player.username); showToast(`${player.username} entrou!`, 'user-plus'); });
+  socket.on('currentPlayers', (players) => { updatePlayerList(players, true); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY); }); });
+  socket.on('newPlayer', (player) => { addRemotePlayer(player.id, player.position, player.username, player.rotY); showToast(`${player.username} entrou!`); });
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
+  socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.rotation.y = data.rotY; });
   socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) drawNametag(data.id, !data.muted); });
-  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`, 'user-minus'); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList({}, true); } });
+  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList({}, true); } });
   socket.on('webrtc-offer', async (data) => { const pc = createPeerConnection(data.sender, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('webrtc-answer', { target: data.sender, answer }); });
   socket.on('webrtc-answer', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); });
   socket.on('webrtc-ice-candidate', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); });
