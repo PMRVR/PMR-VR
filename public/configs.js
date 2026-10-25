@@ -5,15 +5,13 @@ export const CONFIG = {
   TURN_CREDENTIAL: "kI3GUMJr8QgqdsvP",
 
   // ===== FÍSICA =====
-  GRAVITY: 20,
-  PUSH_MULTIPLIER: 120,   // Força do empurrão (baixa se tiveres a voar)
-  MAX_SPEED: 10,          // Velocidade máxima (o "Flash" desaparece com 10)
-  AIR_DRAG: 0.96,         // Atrito no ar (quanto mais perto de 1, mais deslizas)
-  GROUND_FRICTION: 0.7,   // Atrito no chão (para parar rápido)
-
-  // ===== JOGO =====
-  PLAYER_HEIGHT: 1.6,     // Altura dos olhos
-  PLAYER_RADIUS: 0.3,     // Grossura do corpo (para colisões)
-  HAND_SIZE: 0.15,        // Tamanho do cubo da mão
-  HEAD_SIZE: 0.8,         // Tamanho da cabeça cinza
+  GRAVITY: 25,           // Aumentado para cair mais rápido
+  PUSH_MULTIPLIER: 400,  // Empurrão mais forte e responsivo
+  MAX_SPEED: 15,         // Limite máximo de velocidade
+  AIR_DRAG: 0.98,        // Atrito no ar (evita voar para sempre)
+  GROUND_FRICTION: 0.85, // Atrito no chão (para rápido)
+  PLAYER_HEIGHT: 1.6,
+  PLAYER_RADIUS: 0.3,
+  HAND_SIZE: 0.15,
+  HEAD_SIZE: 0.8
 };
