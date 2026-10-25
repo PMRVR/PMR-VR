@@ -211,23 +211,42 @@ const PUSH_MULTIPLIER = 400;
 const MAX_SPEED = 15;
 let isGrabbing = false; // Se a mão está a tocar numa superfície
 
-// ============ GIROSCÓPIO ============
-let baseAlpha = null, baseBeta = null, baseGamma = null;
+=== GIROSOPICO =======(MATEMÁTICA) OFICIAL THREE.JS) ============
+
+let baseAlpha = null;
+const zee = new THREE.Vector3(0, 0, 1);
+const euler = new THREE.Euler();
+const q0 = new THREE.Quaternion();
+const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around x-axis
+
 window.addEventListener('deviceorientation', (e) => {
   if (e.alpha == null || e.beta == null || e.gamma == null) return;
-  if (baseAlpha === null) { baseAlpha = e.alpha; baseBeta = e.beta; baseGamma = e.gamma; }
-  const r = Math.PI / 180;
-  let alpha = (e.alpha - baseAlpha) * r;
-  let beta = (e.beta - baseBeta) * r;
-  let gamma = (e.gamma - baseGamma) * r;
-  let screenAngle = window.screen.orientation ? window.screen.orientation.angle : (window.orientation || 0);
-  if (screenAngle === 90 || screenAngle === -90) {
-    const temp = beta; beta = gamma * (screenAngle === 90 ? 1 : -1); gamma = -temp * (screenAngle === 90 ? 1 : -1);
+  
+  if (baseAlpha === null) baseAlpha = e.alpha;
+  
+  const alpha = THREE.MathUtils.degToRad(e.alpha - baseAlpha);
+  const beta = THREE.MathUtils.degToRad(e.beta);
+  const gamma = THREE.MathUtils.degToRad(e.gamma);
+  
+  // Orientação do ecrã (paisagem/retrato)
+  let screenOrientation = 0;
+  if (window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+    screenOrientation = window.screen.orientation.angle;
+  } else if (typeof window.orientation === 'number') {
+    screenOrientation = window.orientation;
   }
-  const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
-  const q1 = new THREE.Quaternion().setFromEuler(euler);
-  const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-  camera.quaternion.multiplyQuaternions(q2, q1);
+  const orient = THREE.MathUtils.degToRad(screenOrientation);
+
+  // A MÁGICA DA THREE.JS:
+  // 1. Aplica os ângulos do telemóvel (YXZ)
+  euler.set(beta, alpha, -gamma, 'YXZ');
+  camera.quaternion.setFromEuler(euler);
+  
+  // 2. Roda -90° em X para a câmara olhar para a traseira do telemóvel (e não para o teto)
+  camera.quaternion.multiply(q1);
+  
+  // 3. Compensa a rotação do ecrã (paisagem) SEM trocar os eixos X/Y
+  camera.quaternion.multiply(q0.setFromAxisAngle(zee, -orient));
 }, true);
 
 // ============ HAND TRACKING ============
