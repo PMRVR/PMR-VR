@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Settings & Multiplayer</title>
+<title>Blocky Tag - Compact UI</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
   canvas { display: block; }
 
-  /* MENU / LOBBY */
+  /* MENU */
   #menu { position: fixed; inset: 0; z-index: 1000; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #menu.hidden { display: none; }
   #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
@@ -21,40 +21,43 @@
   /* LOBBY BOX */
   #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
   #lobbyBox.show { display: flex; }
-  #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-  #roomCodeDisplay { font-family: monospace; font-size: 28px; font-weight: bold; color: #fff; margin-bottom: 10px; letter-spacing: 2px; }
+  #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; }
+  #roomCodeDisplay { font-family: monospace; font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 10px; }
   #shareLinkInput { width: 100%; padding: 10px; background: #000; border: 1px solid #333; border-radius: 8px; color: #888; font-size: 12px; margin-bottom: 10px; text-align: center; }
-  #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: 0.2s; }
-  #copyBtn:active { transform: scale(0.95); }
+  #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; }
   #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; }
   #playerList li { padding: 5px 0; display: flex; align-items: center; gap: 8px; }
   #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
   #startGameBtn.show { display: block; }
 
-  /* HUD E OUTROS */
+  /* HUD & NOTIFICAÇÕES */
   #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
   #settingsBtn { position: fixed; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.5); border: 1px solid #444; color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
   #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; z-index: 100; }
-  
-  /* PAINEL SETTINGS */
-  #settingsPanel { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+
+  /* PAINEL SETTINGS COMPACTO */
+  #settingsPanel { position: fixed; top: 60px; right: 10px; z-index: 200; background: rgba(20,20,20,0.95); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; padding: 15px; width: 240px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #settingsPanel.show { display: flex; }
-  #settingsPanel h2 { margin-bottom: 20px; color: #00ffaa; }
+  #settingsPanel h2 { font-size: 16px; margin-bottom: 12px; color: #00ffaa; border-bottom: 1px solid #333; padding-bottom: 5px; }
   
-  .setting-group { background: #1a1a1a; border: 1px solid #333; padding: 15px; border-radius: 10px; margin-bottom: 15px; width: 100%; max-width: 400px; }
-  .setting-group h3 { font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase; }
-  .setting-options { display: flex; gap: 10px; flex-wrap: wrap; }
-  .setting-options button { background: #222; border: 2px solid #333; color: #fff; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; flex: 1; min-width: 60px; }
-  .setting-options button.active { background: #00ffaa; color: #000; border-color: #00ffaa; }
+  .setting-group { margin-bottom: 15px; }
+  .setting-group h3 { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+  .setting-options { display: flex; gap: 4px; flex-wrap: wrap; }
+  .setting-options button { background: #222; border: 1px solid #444; color: #fff; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; flex: 1; min-width: 45px; }
+  .setting-options button.active { background: #00ffaa; color: #000; border-color: #00ffaa; font-weight: bold; }
 
-  #voiceStatus { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-top: 10px; }
-  #voiceDot { width: 12px; height: 12px; border-radius: 50%; background: #ff4444; }
+  #voiceStatus { display: flex; align-items: center; gap: 5px; font-size: 12px; margin-bottom: 8px; }
+  #voiceDot { width: 8px; height: 8px; border-radius: 50%; background: #ff4444; }
   .active-voice { background: #00ffaa !important; color: #000 !important; border-color: #00ffaa !important; }
-
-  #closeSettings { background: #333; color: #fff; border: none; padding: 10px 30px; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+  #closeSettings { background: #333; color: #fff; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 5px; }
 
   .nametag { position: fixed; top: 0; left: 0; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 5; transform: translate(-50%, -50%); white-space: nowrap; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; }
+
+  /* NOTIFICAÇÕES (TOASTS) */
+  #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 3000; pointer-events: none; align-items: center; }
+  .toast { background: rgba(20, 20, 20, 0.9); border: 1px solid #00ffaa; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: slideUp 0.3s ease-out; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
@@ -77,24 +80,25 @@
 </div>
 
 <div id="hud">A carregar...</div>
-<button id="settingsBtn">⚙️ Configurações</button>
-<div id="version">v2.2.0</div>
+<button id="settingsBtn">⚙️</button>
+<div id="version">v2.3.0</div>
 
+<!-- PAINEL SETTINGS COMPACTO -->
 <div id="settingsPanel">
   <h2>Configurações</h2>
   
   <div class="setting-group">
-    <h3>🎮 Gráficos</h3>
+    <h3>Gráficos</h3>
     <div class="setting-options" id="resOptions">
-      <button data-res="potato">Potato</button>
-      <button data-res="low">Low</button>
-      <button data-res="medium" class="active">Medium</button>
-      <button data-res="high">High</button>
+      <button data-res="potato">P</button>
+      <button data-res="low">L</button>
+      <button data-res="medium" class="active">M</button>
+      <button data-res="high">H</button>
     </div>
   </div>
 
   <div class="setting-group">
-    <h3>✋ Hand Tracking (FPS)</h3>
+    <h3>Tracking FPS</h3>
     <div class="setting-options" id="fpsOptions">
       <button data-fps="10">10</button>
       <button data-fps="20" class="active">20</button>
@@ -104,16 +108,19 @@
   </div>
 
   <div class="setting-group">
-    <h3>🎤 Voice Chat</h3>
+    <h3>Voz</h3>
     <div id="voiceStatus">
       <div id="voiceDot"></div>
       <span id="voiceText">Desligado</span>
     </div>
-    <button id="toggleMicBtn" style="margin-top: 10px; width: 100%; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer;">Ativar Microfone</button>
+    <button id="toggleMicBtn" style="width: 100%; padding: 6px; border-radius: 6px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer; font-size: 11px;">Ativar Microfone</button>
   </div>
 
   <button id="closeSettings">Fechar</button>
 </div>
+
+<!-- CONTAINER DE NOTIFICAÇÕES -->
+<div id="toastContainer"></div>
 
 <video id="webcam" autoplay playsinline muted></video>
 
@@ -145,6 +152,22 @@ const settings = {
   fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10)
 };
 
+// ============ NOTIFICAÇÕES ============
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    toast.style.transition = '0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
 // ============ THREE.JS ============
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x555555);
@@ -154,6 +177,11 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 function createRenderer() {
   const resMap = { potato: 0.5, low: 0.75, medium: 1.0, high: 1.5 };
   const pixelRatio = Math.min(window.devicePixelRatio, resMap[settings.res] || 1);
+  
+  if (renderer) {
+    renderer.dispose();
+    document.body.removeChild(renderer.domElement);
+  }
   
   renderer = new THREE.WebGLRenderer({ antialias: settings.res === 'high', powerPreference: "high-performance" });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -236,20 +264,20 @@ async function toggleMicrophone() {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localAudioTrack = localStream.getAudioTracks()[0];
       isMicOn = true;
-      document.getElementById('toggleMicBtn').textContent = "🔇 Desativar Microfone";
+      document.getElementById('toggleMicBtn').textContent = "🔇 Desativar";
       document.getElementById('toggleMicBtn').classList.add('active-voice');
       document.getElementById('voiceDot').style.background = '#00ffaa';
       document.getElementById('voiceText').textContent = "A falar...";
       if (socket) socket.emit('toggleMute', { roomCode, muted: false });
     } catch (err) {
       document.getElementById('voiceDot').style.background = '#ff4444';
-      document.getElementById('voiceText').textContent = "Microfone bloqueado";
+      document.getElementById('voiceText').textContent = "Bloqueado";
     }
   } else {
     isMicOn = false;
     if (localAudioTrack) { localAudioTrack.stop(); localAudioTrack = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    document.getElementById('toggleMicBtn').textContent = "🎤 Ativar Microfone";
+    document.getElementById('toggleMicBtn').textContent = "🎤 Ativar";
     document.getElementById('toggleMicBtn').classList.remove('active-voice');
     document.getElementById('voiceDot').style.background = '#ffcc00';
     document.getElementById('voiceText').textContent = "Silenciado";
@@ -286,6 +314,7 @@ function connectToServer() {
   socket.on('newPlayer', (player) => {
     document.getElementById('playerList').innerHTML += `<li>👤 ${player.username}</li>`;
     addRemotePlayer(player.id, player.position, player.username);
+    showToast(`🎮 ${player.username} entrou na sala!`);
   });
 
   socket.on('playerMoved', (data) => {
@@ -296,6 +325,7 @@ function connectToServer() {
 
   socket.on('playerDisconnected', (id) => {
     if (remotePlayers[id]) {
+      showToast(`🚪 ${remotePlayers[id].username} saiu.`);
       scene.remove(remotePlayers[id].mesh);
       remotePlayers[id].nametag.remove();
       delete remotePlayers[id];
@@ -318,7 +348,7 @@ function addRemotePlayer(id, position, username) {
   nametag.innerHTML = `<span class="mic-icon">🎙️</span> ${username}`;
   document.body.appendChild(nametag);
 
-  remotePlayers[id] = { mesh, nametag };
+  remotePlayers[id] = { mesh, nametag, username };
 }
 
 // ============ LOOP ============
@@ -341,7 +371,7 @@ function loop() {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
     }
 
-    // Hand tracking logic (using FPS from settings)
+    // Hand tracking logic
     if (handLandmarker && (now - lastHandDetectTime > (1000 / settings.fps))) {
       lastHandDetectTime = now;
       const video = document.getElementById('webcam');
@@ -458,23 +488,17 @@ document.getElementById('startGameBtn').onclick = () => {
 };
 
 // SETTINGS UI
-document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.add('show');
+document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('show');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').classList.remove('show');
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
 
-// Options Click Listeners
+// Options Click
 document.querySelectorAll('#resOptions button').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('#resOptions button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     settings.res = btn.dataset.res;
     localStorage.setItem('pmr_res', settings.res);
-    
-    // Re-create renderer for new res
-    if (renderer) {
-      renderer.dispose();
-      document.body.removeChild(renderer.domElement);
-    }
     createRenderer();
   };
   if (btn.dataset.res === settings.res) btn.classList.add('active');
@@ -490,15 +514,54 @@ document.querySelectorAll('#fpsOptions button').forEach(btn => {
   if (parseInt(btn.dataset.fps) === settings.fps) btn.classList.add('active');
 });
 
-// Start Loop
+// Link direto com sala
+const urlParams = new URLSearchParams(window.location.search);
+const roomParam = urlParams.get('room');
+if (roomParam) {
+  roomCode = roomParam;
+  myUsername = localStorage.getItem('pmr_username') || prompt("O teu nome:", "Amigo") || "Amigo";
+  localStorage.setItem('pmr_username', myUsername);
+  
+  initHandTracking();
+  
+  const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+  socket = io(serverUrl);
+  
+  socket.on('connect', () => {
+    socket.emit('joinRoom', { roomCode, username: myUsername });
+    document.getElementById('menu').classList.add('hidden');
+    gameStarted = true;
+  });
+  socket.on('currentPlayers', (players) => {
+    Object.keys(players).forEach(id => { 
+      if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username); 
+    });
+  });
+  socket.on('newPlayer', (player) => {
+    addRemotePlayer(player.id, player.position, player.username);
+    showToast(`🎮 ${player.username} entrou!`);
+  });
+  socket.on('playerMoved', (data) => {
+    if (remotePlayers[data.id]) remotePlayers[data.id].mesh.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2);
+  });
+  socket.on('playerDisconnected', (id) => {
+    if (remotePlayers[id]) {
+      showToast(`🚪 ${remotePlayers[id].username} saiu.`);
+      scene.remove(remotePlayers[id].mesh); 
+      remotePlayers[id].nametag.remove(); 
+      delete remotePlayers[id]; 
+    }
+  });
+  
+  isMultiplayer = true;
+}
+
 loop();
 
 window.addEventListener('resize', () => {
-  if (renderer) {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
 </body>
