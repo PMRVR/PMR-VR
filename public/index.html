@@ -10,44 +10,41 @@
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
   
   canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: block; }
-  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud, #version, #landscapeBtn { z-index: 100; }
+  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud, #version, #roomIndicator { z-index: 100; }
 
-  #menu { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  #menu { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #menu.hidden { display: none; }
-  #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
+  #menu h1 { font-size: 32px; margin-bottom: 15px; color: #00ffaa; font-weight: 800; }
   
   #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 15px; width: 100%; max-width: 300px; }
-  #joinCodeInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 10px; width: 100%; max-width: 300px; }
   
-  #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 6px; border-radius: 10px; cursor: pointer; width: 100%; max-width: 300px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  #menu button:hover { border-color: #00ffaa; background: #333; }
+  /* ABAS */
+  .tabs { display: flex; gap: 5px; width: 100%; max-width: 300px; margin-bottom: 15px; background: #222; padding: 4px; border-radius: 10px; }
+  .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: #888; font-weight: 600; cursor: pointer; border-radius: 8px; transition: 0.2s; font-size: 14px; }
+  .tab-btn.active { background: #444; color: #fff; }
+  .tab-content { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 300px; }
+  .tab-content.active { display: flex; }
+
+  /* BOTÕES */
+  .action-btn { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 16px; margin: 5px 0; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .action-btn:hover { border-color: #00ffaa; background: #333; }
   
-  #joinBtn { background: #00ffaa !important; color: #000 !important; border-color: #00ffaa !important; font-size: 16px !important; }
-  #landscapeBtn { background: #ffaa00 !important; color: #000 !important; border-color: #ffaa00 !important; font-size: 15px !important; }
-  #accessoryBtn { background: #4488ff !important; border-color: #4488ff !important; font-size: 15px !important; }
+  #btnCreate { background: #00ffaa; color: #000; border-color: #00ffaa; }
+  #btnJoin { background: #4488ff; color: #fff; border-color: #4488ff; }
+  #joinCodeInput { padding: 12px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #000; color: #fff; text-align: center; margin-bottom: 10px; width: 100%; font-family: monospace; }
+
+  /* INDICADOR DA SALA NO CANTO (NO JOGO) */
+  #roomIndicator { position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.7); border: 1px solid #00ffaa; padding: 10px 15px; border-radius: 10px; font-family: monospace; font-size: 16px; font-weight: bold; display: none; align-items: center; gap: 10px; cursor: pointer; }
+  #roomIndicator.show { display: flex; }
+  #roomIndicator span { color: #00ffaa; font-size: 20px; }
   
-  .section-title { font-size: 14px; color: #888; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 1px; }
-  
-  #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
-  #lobbyBox.show { display: flex; }
-  #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; }
-  #roomCodeDisplay { font-family: monospace; font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 10px; }
-  #shareLinkInput { width: 100%; padding: 10px; background: #000; border: 1px solid #333; border-radius: 8px; color: #888; font-size: 12px; margin-bottom: 10px; text-align: center; }
-  #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; }
-  
-  #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; max-height: 200px; overflow-y: auto; }
-  #playerList li { padding: 8px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #222; }
-  .voice-icon { width: 12px; height: 12px; border-radius: 50%; background: #555; }
-  .voice-icon.talking { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
-  
-  #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
-  #startGameBtn.show { display: flex; }
-  
-  #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; }
+  #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; display: none; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
+  
   #settingsBtn { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; pointer-events: none; }
   
+  /* PAINEL CONFIGS */
   #settingsPanel { position: fixed; top: 60px; right: 10px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
   #settingsPanel.show { display: flex; }
   #settingsContent { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -76,30 +73,38 @@
   <h1>Blocky Tag</h1>
   <input type="text" id="usernameInput" placeholder="O teu nome..." maxlength="15" />
   
-  <div class="section-title">Criar Sala</div>
-  <button id="btnMultiplayer">Criar Sala</button>
-  
-  <div class="section-title">Entrar em Sala</div>
-  <input type="text" id="joinCodeInput" placeholder="Cole o código ou link aqui" maxlength="80" />
-  <button id="joinBtn">Conectar</button>
+  <!-- ABAS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="play">Jogar</button>
+    <button class="tab-btn" data-tab="join">Entrar</button>
+    <button class="tab-btn" data-tab="extra">Extra</button>
+  </div>
 
-  <button id="btnSolo">Jogar Solo</button>
-  <button id="landscapeBtn">📱 Forçar Modo Paisagem</button>
-  <button id="accessoryBtn">🎩 Acessórios</button>
+  <!-- CONTEÚDO: JOGAR -->
+  <div class="tab-content active" id="tab-play">
+    <button id="btnCreate" class="action-btn">Criar Sala</button>
+    <button id="btnSolo" class="action-btn">Jogar Solo</button>
+  </div>
 
-  <div id="lobbyBox">
-    <h3>Link para Amigo</h3>
-    <div id="roomCodeDisplay"></div>
-    <input type="text" id="shareLinkInput" readonly />
-    <button id="copyBtn">Copiar Link</button>
-    <ul id="playerList"></ul>
-    <button id="startGameBtn">Entrar no Jogo</button>
+  <!-- CONTEÚDO: ENTRAR -->
+  <div class="tab-content" id="tab-join">
+    <input type="text" id="joinCodeInput" placeholder="Cole o código da sala" maxlength="80" />
+    <button id="btnJoin" class="action-btn">Conectar</button>
+  </div>
+
+  <!-- CONTEÚDO: EXTRA -->
+  <div class="tab-content" id="tab-extra">
+    <button id="landscapeBtn" class="action-btn" style="background: #ffaa00; color: #000; border-color: #ffaa00;">📱 Forçar Paisagem</button>
+    <button id="accessoryBtn" class="action-btn" style="background: #4488ff; border-color: #4488ff;">🎩 Acessórios</button>
   </div>
 </div>
 
+<!-- INDICADOR DA ROOM NO CANTO -->
+<div id="roomIndicator" onclick="copyRoomLink()">Sala: <span id="roomCodeText">------</span> 📋</div>
 <div id="hud">A carregar...</div>
+
 <button id="settingsBtn">⚙️</button>
-<div id="version">v12.0.0</div>
+<div id="version">v13.0.0</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -166,6 +171,7 @@ function showToast(message) {
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
+// ============ THREE.JS SETUP ============
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x555555);
 scene.fog = new THREE.Fog(0x555555, 15, 60);
@@ -185,6 +191,7 @@ createRenderer();
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 
+// ============ MUNDO ============
 const worldGroup = new THREE.Group();
 scene.add(worldGroup);
 const colliders = [];
@@ -210,27 +217,18 @@ for (let i = 0; i < 5; i++) {
   colliders.push(new THREE.Box3().setFromObject(step));
 }
 
+// ============ CARA E CORPO ============
 function createFaceTexture(isTalking) {
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 256; canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#888888';
-  ctx.fillRect(0, 0, 256, 256);
-
-  ctx.fillStyle = '#111';
-  ctx.strokeStyle = '#111';
-  ctx.lineWidth = 8;
-  ctx.lineCap = 'round';
+  ctx.fillStyle = '#888888'; ctx.fillRect(0, 0, 256, 256);
+  ctx.fillStyle = '#111'; ctx.strokeStyle = '#111'; ctx.lineWidth = 8; ctx.lineCap = 'round';
 
   if (isTalking) {
     ctx.beginPath(); ctx.arc(80, 100, 12, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(176, 100, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(100, 160);
-    ctx.lineTo(128, 200);
-    ctx.lineTo(156, 160);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(100, 160); ctx.lineTo(128, 200); ctx.lineTo(156, 160); ctx.stroke();
   } else {
     ctx.beginPath(); ctx.moveTo(70, 80); ctx.lineTo(90, 120); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(186, 80); ctx.lineTo(166, 120); ctx.stroke();
@@ -246,12 +244,10 @@ const headMaterials = [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
 const myBodyGroup = new THREE.Group();
 
 const bigHead = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), headMaterials);
-bigHead.position.y = 0.4;
-myBodyGroup.add(bigHead);
+bigHead.position.y = 0.4; myBodyGroup.add(bigHead);
 
 const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
-belly.position.y = -0.4;
-myBodyGroup.add(belly);
+belly.position.y = -0.4; myBodyGroup.add(belly);
 
 const hatMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
 hatMesh.position.y = 0.9; hatMesh.visible = false; myBodyGroup.add(hatMesh);
@@ -272,8 +268,7 @@ scene.add(myBodyGroup);
 const handGeo = new THREE.BoxGeometry(CONFIG.HAND_SIZE, CONFIG.HAND_SIZE, CONFIG.HAND_SIZE);
 const leftHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
 const rightHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
-scene.add(leftHandMesh);
-scene.add(rightHandMesh);
+scene.add(leftHandMesh); scene.add(rightHandMesh);
 
 const leftHandBox = new THREE.Box3();
 const rightHandBox = new THREE.Box3();
@@ -296,9 +291,7 @@ async function initHandTracking() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 480, height: 360 } });
     const video = document.getElementById('webcam');
-    video.srcObject = stream;
-    await video.play();
-    video.style.display = 'block';
+    video.srcObject = stream; await video.play(); video.style.display = 'block';
     const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
     handLandmarker = await HandLandmarker.createFromOptions(vision, {
       baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "CPU" },
@@ -308,18 +301,17 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
+// ============ VOICE CHAT ============
 let audioContext = null, audioAnalyser = null, audioDataArray = null;
 
 async function toggleMicrophone() {
   if (myMuted) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      myMuted = false;
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); myMuted = false;
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContext.createMediaStreamSource(localStream);
       audioAnalyser = audioContext.createAnalyser(); audioAnalyser.fftSize = 256;
-      audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
-      source.connect(audioAnalyser);
+      audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount); source.connect(audioAnalyser);
       document.getElementById('toggleMicBtn').textContent = "Desativar";
       document.getElementById('toggleMicBtn').classList.add('active-voice');
       document.getElementById('voiceDot').style.background = '#00ffaa';
@@ -335,8 +327,7 @@ async function toggleMicrophone() {
     document.getElementById('toggleMicBtn').classList.remove('active-voice');
     document.getElementById('voiceDot').style.background = '#ff4444';
     document.getElementById('voiceText').textContent = "Silenciado";
-    faceMat.map = createFaceTexture(false);
-    faceMat.needsUpdate = true;
+    faceMat.map = createFaceTexture(false); faceMat.needsUpdate = true;
     if (socket) socket.emit('toggleMute', { roomCode, muted: true });
   }
 }
@@ -358,37 +349,30 @@ function createPeerConnection(targetId, isInitiator) {
   return pc;
 }
 
+// ============ MULTIPLAYER ============
 function setupSocketEvents() {
   socket.on('connect', () => {
     socket.emit('joinRoom', { roomCode, username: myUsername });
-    document.getElementById('roomCodeDisplay').textContent = roomCode;
-    const link = `${window.location.origin}?room=${roomCode}`;
-    document.getElementById('shareLinkInput').value = link;
-    document.getElementById('lobbyBox').classList.add('show');
-    updatePlayerList();
-    socket.emit('updateAccessory', { roomCode, accessory: settings.acc });
+    document.getElementById('roomCodeText').textContent = roomCode;
+    document.getElementById('roomIndicator').classList.add('show');
     document.getElementById('menu').classList.add('hidden');
+    document.getElementById('hud').style.display = 'block';
     gameStarted = true;
+    socket.emit('updateAccessory', { roomCode, accessory: settings.acc });
   });
   
-  socket.on('currentPlayers', (players) => { updatePlayerList(); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY, players[id].accessory); }); });
-  socket.on('newPlayer', (player) => { addRemotePlayer(player.id, player.position, player.username, player.rotY, player.accessory); showToast(`${player.username} entrou!`); updatePlayerList(); });
+  socket.on('currentPlayers', (players) => { Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY, players[id].accessory); }); });
+  socket.on('newPlayer', (player) => { addRemotePlayer(player.id, player.position, player.username, player.rotY, player.accessory); showToast(`${player.username} entrou!`); });
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
   socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.rotation.y = data.rotY; });
   socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) { remotePlayers[data.id].isTalking = !data.muted; remotePlayers[data.id].faceMat.map = createFaceTexture(!data.muted); remotePlayers[data.id].faceMat.needsUpdate = true; } });
   socket.on('playerAccessoryChanged', (data) => { if (remotePlayers[data.id]) updateRemoteAccessory(remotePlayers[data.id], data.accessory); });
-  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList(); } });
+  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } } });
   socket.on('webrtc-offer', async (data) => { const pc = createPeerConnection(data.sender, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('webrtc-answer', { target: data.sender, answer }); });
   socket.on('webrtc-answer', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); });
   socket.on('webrtc-ice-candidate', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); });
   
-  isMultiplayer = true; document.getElementById('startGameBtn').classList.add('show');
-}
-
-function updatePlayerList() {
-  const list = document.getElementById('playerList');
-  list.innerHTML = `<li><span class="voice-icon" id="my-voice-indicator"></span> ${myUsername} (Tu)</li>`;
-  Object.keys(remotePlayers).forEach(id => { list.innerHTML += `<li><span class="voice-icon"></span> ${remotePlayers[id].username}</li>`; });
+  isMultiplayer = true;
 }
 
 function addRemotePlayer(id, position, username, rotY, accessory) {
@@ -399,12 +383,10 @@ function addRemotePlayer(id, position, username, rotY, accessory) {
   const remoteHeadMats = [remoteSideMat, remoteSideMat, remoteSideMat, remoteSideMat, remoteFaceMat, remoteSideMat];
 
   const head = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), remoteHeadMats);
-  head.position.y = 0.4; 
-  group.add(head);
+  head.position.y = 0.4; group.add(head);
 
   const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
-  belly.position.y = -0.4; 
-  group.add(belly);
+  belly.position.y = -0.4; group.add(belly);
 
   const rHat = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
   rHat.position.y = 0.9; rHat.visible = false; group.add(rHat);
@@ -420,31 +402,24 @@ function addRemotePlayer(id, position, username, rotY, accessory) {
   const rBighead = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshBasicMaterial({ color: 0x888888 }));
   rBighead.position.y = 0.9; rBighead.visible = false; group.add(rBighead);
 
-  group.position.set(position.x, position.y, position.z); 
-  group.rotation.y = rotY || 0;
+  group.position.set(position.x, position.y, position.z); group.rotation.y = rotY || 0;
   scene.add(group);
   
   const rp = { group, username, faceMat: remoteFaceMat, isTalking: false, acc: { hat: rHat, cone: rCone, nutella: rNutella, nutellaLid: rNutellaLid, bighead: rBighead } };
   updateRemoteAccessory(rp, accessory);
   remotePlayers[id] = rp; 
-  updatePlayerList();
 }
 
 function updateRemoteAccessory(rp, accessory) {
-  rp.acc.hat.visible = false;
-  rp.acc.cone.visible = false;
-  rp.acc.nutella.visible = false;
-  rp.acc.nutellaLid.visible = false;
-  rp.acc.bighead.visible = false;
-
+  rp.acc.hat.visible = false; rp.acc.cone.visible = false; rp.acc.nutella.visible = false; rp.acc.nutellaLid.visible = false; rp.acc.bighead.visible = false;
   if (accessory === 'hat') rp.acc.hat.visible = true;
   if (accessory === 'cone') rp.acc.cone.visible = true;
   if (accessory === 'nutella') { rp.acc.nutella.visible = true; rp.acc.nutellaLid.visible = true; }
   if (accessory === 'bighead') rp.acc.bighead.visible = true;
 }
 
+// ============ LOOP ============
 let lastTime = performance.now();
-
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now();
@@ -458,19 +433,12 @@ function loop() {
     const isTalkingNow = volume > 20;
     
     if (!bigHead.userData.isTalking && isTalkingNow) {
-      faceMat.map = createFaceTexture(true);
-      faceMat.needsUpdate = true;
-      bigHead.userData.isTalking = true;
+      faceMat.map = createFaceTexture(true); faceMat.needsUpdate = true; bigHead.userData.isTalking = true;
       if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: true });
     } else if (bigHead.userData.isTalking && !isTalkingNow) {
-      faceMat.map = createFaceTexture(false);
-      faceMat.needsUpdate = true;
-      bigHead.userData.isTalking = false;
+      faceMat.map = createFaceTexture(false); faceMat.needsUpdate = true; bigHead.userData.isTalking = false;
       if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: false });
     }
-    
-    const micIcon = document.getElementById('my-voice-indicator');
-    if (micIcon) { if (isTalkingNow) micIcon.className = 'voice-icon talking'; else micIcon.className = 'voice-icon'; }
   }
 
   if (gameStarted) {
@@ -478,16 +446,11 @@ function loop() {
     rightHandBox.setFromCenterAndSize(rightHandMesh.position, new THREE.Vector3(0.2, 0.2, 0.2));
     
     let touching = false;
-    colliders.forEach(box => {
-      if (leftHandBox.intersectsBox(box)) touching = true;
-      if (rightHandBox.intersectsBox(box)) touching = true;
-    });
+    colliders.forEach(box => { if (leftHandBox.intersectsBox(box)) touching = true; if (rightHandBox.intersectsBox(box)) touching = true; });
     isGrabbing = touching;
 
     if (!isGrabbing) { playerVel.y -= CONFIG.GRAVITY * dt; } else { playerVel.y = 0; }
-
-    if (isGrounded) { playerVel.x *= CONFIG.GROUND_FRICTION; playerVel.z *= CONFIG.GROUND_FRICTION; } 
-    else { playerVel.x *= CONFIG.AIR_DRAG; playerVel.z *= CONFIG.AIR_DRAG; }
+    if (isGrounded) { playerVel.x *= CONFIG.GROUND_FRICTION; playerVel.z *= CONFIG.GROUND_FRICTION; } else { playerVel.x *= CONFIG.AIR_DRAG; playerVel.z *= CONFIG.AIR_DRAG; }
 
     const prevPos = playerPos.clone();
     playerPos.addScaledVector(playerVel, dt);
@@ -567,6 +530,21 @@ function loop() {
   renderer.render(scene, camera);
 }
 
+// ============ FUNÇÕES UI ============
+window.copyRoomLink = () => {
+  const link = `${window.location.origin}?room=${roomCode}`;
+  navigator.clipboard.writeText(link).then(() => showToast("Link da sala copiado!"));
+};
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+  };
+});
+
 document.getElementById('landscapeBtn').onclick = async () => {
   try {
     if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
@@ -575,10 +553,10 @@ document.getElementById('landscapeBtn').onclick = async () => {
   } catch (err) { showToast("O teu browser não permite forçar. Roda manualmente."); }
 };
 
-document.getElementById('btnMultiplayer').onclick = () => { 
-  myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; 
-  localStorage.setItem('pmr_username', myUsername); 
-  initHandTracking(); 
+document.getElementById('btnCreate').onclick = () => {
+  myUsername = document.getElementById('usernameInput').value.trim() || "Jogador";
+  localStorage.setItem('pmr_username', myUsername);
+  initHandTracking();
   
   roomCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
@@ -586,15 +564,12 @@ document.getElementById('btnMultiplayer').onclick = () => {
   setupSocketEvents();
 };
 
-document.getElementById('joinBtn').onclick = () => {
+document.getElementById('btnJoin').onclick = () => {
   const inputVal = document.getElementById('joinCodeInput').value.trim();
   if (!inputVal) return showToast("Cola o código ou link primeiro!");
   
   let parsedRoomCode = inputVal;
-  // Se o gajo colar o link inteiro (https://.../?room=12345), extrai só o código
-  if (inputVal.includes('?room=')) {
-    parsedRoomCode = inputVal.split('?room=')[1].split('&')[0];
-  }
+  if (inputVal.includes('?room=')) { parsedRoomCode = inputVal.split('?room=')[1].split('&')[0]; }
   
   roomCode = parsedRoomCode;
   myUsername = document.getElementById('usernameInput').value.trim() || "Amigo";
@@ -606,49 +581,28 @@ document.getElementById('joinBtn').onclick = () => {
   setupSocketEvents();
 };
 
-document.getElementById('btnSolo').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); gameStarted = true; document.getElementById('menu').classList.add('hidden'); };
-document.getElementById('copyBtn').onclick = () => { const link = document.getElementById('shareLinkInput').value; navigator.clipboard.writeText(link).then(() => { document.getElementById('copyBtn').textContent = "Copiado!"; setTimeout(() => { document.getElementById('copyBtn').textContent = "Copiar Link"; }, 2000); }); };
-document.getElementById('startGameBtn').onclick = () => { gameStarted = true; document.getElementById('menu').classList.add('hidden'); };
+document.getElementById('btnSolo').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); gameStarted = true; document.getElementById('menu').classList.add('hidden'); document.getElementById('hud').style.display = 'block'; };
 document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('show');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').classList.remove('show');
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
+document.getElementById('leaveRoomBtn').onclick = () => location.reload();
 
 document.querySelectorAll('#resOptions button').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('#resOptions button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    settings.res = btn.dataset.res;
-    localStorage.setItem('pmr_res', settings.res);
-    createRenderer();
-  };
+  btn.onclick = () => { document.querySelectorAll('#resOptions button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); settings.res = btn.dataset.res; localStorage.setItem('pmr_res', settings.res); createRenderer(); };
 });
 
 document.querySelectorAll('#fpsOptions button').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('#fpsOptions button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    settings.fps = parseInt(btn.dataset.fps, 10);
-    localStorage.setItem('pmr_fps', settings.fps);
-  };
+  btn.onclick = () => { document.querySelectorAll('#fpsOptions button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); settings.fps = parseInt(btn.dataset.fps, 10); localStorage.setItem('pmr_fps', settings.fps); };
 });
 
 document.querySelectorAll('#accOptions button').forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll('#accOptions button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    settings.acc = btn.dataset.acc;
-    
-    hatMesh.visible = false;
-    coneMesh.visible = false;
-    nutellaMesh.visible = false;
-    nutellaLid.visible = false;
-    bigheadMesh.visible = false;
-    
+    document.querySelectorAll('#accOptions button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); settings.acc = btn.dataset.acc;
+    hatMesh.visible = false; coneMesh.visible = false; nutellaMesh.visible = false; nutellaLid.visible = false; bigheadMesh.visible = false;
     if (settings.acc === 'hat') hatMesh.visible = true;
     if (settings.acc === 'cone') coneMesh.visible = true;
     if (settings.acc === 'nutella') { nutellaMesh.visible = true; nutellaLid.visible = true; }
     if (settings.acc === 'bighead') bigheadMesh.visible = true;
-
     if (socket && roomCode) socket.emit('updateAccessory', { roomCode, accessory: settings.acc });
   };
 });
