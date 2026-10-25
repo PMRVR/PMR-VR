@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Climb & Grab</title>
+<title>Blocky Tag - Gyro Fix by Mestre</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -70,7 +70,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v6.0.0 - Climb Fix</div>
+<div id="version">v7.0.0 - Gyro Mestre</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -165,7 +165,7 @@ scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 // ============ MUNDO E COLISORES ============
 const worldGroup = new THREE.Group();
 scene.add(worldGroup);
-const colliders = []; // Guarda as caixas de colisão do mundo
+const colliders = [];
 
 // Chão
 const floor = new THREE.Mesh(new THREE.BoxGeometry(100, 1, 100), new THREE.MeshBasicMaterial({ color: 0x888888 }));
@@ -173,7 +173,7 @@ floor.position.y = -0.5;
 worldGroup.add(floor);
 colliders.push(new THREE.Box3().setFromObject(floor));
 
-// Blocos
+// Blocos Normais
 const boxMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
 [{ x: 5, z: -5, size: 2 }, { x: -5, z: -8, size: 3 }, { x: 0, z: -12, size: 4 }].forEach(b => {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size, b.size, b.size), boxMat);
@@ -182,24 +182,27 @@ const boxMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
   colliders.push(new THREE.Box3().setFromObject(mesh));
 });
 
-// ============ CABEÇA GRANDE E MÃOS ============
-// A cabeça é a câmara, mas adicionamos um "corpo" cinza flutuante para os outros verem
-const myBodyGroup = new THREE.Group();
-const bigHead = new THREE.Mesh(
-  new THREE.BoxGeometry(0.8, 0.8, 0.8), 
-  new THREE.MeshBasicMaterial({ color: 0x888888 }) // Cabeça Grande Cinza
-);
-myBodyGroup.add(bigHead);
-scene.add(myBodyGroup); // Vai seguir a câmara no loop
+// ============ ESCADA DE TESTE ============
+const stairMat = new THREE.MeshBasicMaterial({ color: 0x666688 });
+for (let i = 0; i < 5; i++) {
+  const step = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), stairMat);
+  step.position.set(0, 0.25 + (i * 0.5), -3 - (i * 1.5));
+  worldGroup.add(step);
+  colliders.push(new THREE.Box3().setFromObject(step));
+}
 
-// Mãos (Cubos)
+// ============ CABEÇA E MÃOS ============
+const myBodyGroup = new THREE.Group();
+const bigHead = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+myBodyGroup.add(bigHead);
+scene.add(myBodyGroup);
+
 const handGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
 const leftHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
 const rightHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
 scene.add(leftHandMesh);
 scene.add(rightHandMesh);
 
-// Colisores das mãos
 const leftHandBox = new THREE.Box3();
 const rightHandBox = new THREE.Box3();
 
@@ -209,44 +212,19 @@ const playerVel = new THREE.Vector3(0, 0, 0);
 const GRAVITY = 20;
 const PUSH_MULTIPLIER = 400; 
 const MAX_SPEED = 15;
-let isGrabbing = false; // Se a mão está a tocar numa superfície
+let isGrabbing = false;
 
-=== GIROSOPICO =======(MATEMÁTICA) OFICIAL THREE.JS) ============
+// ============ GIROSCÓPIO DO MESTRE (A TUA DESCOBERTA) ============
+window.addEventListener("deviceorientation", (event) => {
+  if (event.alpha == null || event.beta == null) return;
 
-let baseAlpha = null;
-const zee = new THREE.Vector3(0, 0, 1);
-const euler = new THREE.Euler();
-const q0 = new THREE.Quaternion();
-const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around x-axis
+  const horizontal = event.alpha;
+  const vertical = event.beta;
 
-window.addEventListener('deviceorientation', (e) => {
-  if (e.alpha == null || e.beta == null || e.gamma == null) return;
-  
-  if (baseAlpha === null) baseAlpha = e.alpha;
-  
-  const alpha = THREE.MathUtils.degToRad(e.alpha - baseAlpha);
-  const beta = THREE.MathUtils.degToRad(e.beta);
-  const gamma = THREE.MathUtils.degToRad(e.gamma);
-  
-  // Orientação do ecrã (paisagem/retrato)
-  let screenOrientation = 0;
-  if (window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
-    screenOrientation = window.screen.orientation.angle;
-  } else if (typeof window.orientation === 'number') {
-    screenOrientation = window.orientation;
-  }
-  const orient = THREE.MathUtils.degToRad(screenOrientation);
-
-  // A MÁGICA DA THREE.JS:
-  // 1. Aplica os ângulos do telemóvel (YXZ)
-  euler.set(beta, alpha, -gamma, 'YXZ');
-  camera.quaternion.setFromEuler(euler);
-  
-  // 2. Roda -90° em X para a câmara olhar para a traseira do telemóvel (e não para o teto)
-  camera.quaternion.multiply(q1);
-  
-  // 3. Compensa a rotação do ecrã (paisagem) SEM trocar os eixos X/Y
-  camera.quaternion.multiply(q0.setFromAxisAngle(zee, -orient));
+  // A MÁGICA SIMPLIFICADA: Y = Alpha, X = Beta. E o Gamma (volante) é ignorado.
+  camera.rotation.y = THREE.MathUtils.degToRad(horizontal);
+  camera.rotation.x = THREE.MathUtils.degToRad(vertical);
+  camera.rotation.order = 'YXZ'; // Importante para o X e Y não se baralharem
 }, true);
 
 // ============ HAND TRACKING ============
@@ -272,7 +250,7 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
-// ============ VOICE CHAT (Mantido) ============
+// ============ VOICE CHAT ============
 let audioContext = null, audioAnalyser = null, audioDataArray = null;
 async function toggleMicrophone() {
   if (myMuted) {
@@ -324,7 +302,7 @@ function createPeerConnection(targetId, isInitiator) {
   return pc;
 }
 
-// ============ NAMETAG 3D ============
+// ============ NAMETAG ============
 const nametagCanvases = {};
 function createNametag(id, text) {
   const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 256; canvas.height = 64;
@@ -376,7 +354,6 @@ function updatePlayerList(players, isNew) {
 }
 function addRemotePlayer(id, position, username) {
   const group = new THREE.Group();
-  // Corpo Cinza para os outros
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
   group.add(mesh);
   const tag = createNametag(id, username); group.add(tag);
@@ -384,7 +361,7 @@ function addRemotePlayer(id, position, username) {
   remotePlayers[id] = { group, username }; updatePlayerList({}, true);
 }
 
-// ============ LOOP DE FÍSICA (CLIMB FIX) ============
+// ============ LOOP (FÍSICA E CLIMB) ============
 let lastTime = performance.now();
 function loop() {
   requestAnimationFrame(loop);
@@ -392,7 +369,6 @@ function loop() {
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
-  // Voice Analyzer
   if (!myMuted && audioAnalyser) {
     audioAnalyser.getByteFrequencyData(audioDataArray);
     let sum = 0; for (let i = 0; i < audioDataArray.length; i++) sum += audioDataArray[i];
@@ -402,29 +378,22 @@ function loop() {
   }
 
   if (gameStarted) {
-    // 1. Verifica se a mão está a agarrar algo
+    // 1. Verifica colisão das mãos (Climb)
     leftHandBox.setFromCenterAndSize(leftHandMesh.position, new THREE.Vector3(0.2, 0.2, 0.2));
     rightHandBox.setFromCenterAndSize(rightHandMesh.position, new THREE.Vector3(0.2, 0.2, 0.2));
     
-    let leftTouching = false, rightTouching = false;
+    let touching = false;
     colliders.forEach(box => {
-      if (leftHandBox.intersectsBox(box)) leftTouching = true;
-      if (rightHandBox.intersectsBox(box)) rightTouching = true;
+      if (leftHandBox.intersectsBox(box)) touching = true;
+      if (rightHandBox.intersectsBox(box)) touching = true;
     });
+    isGrabbing = touching;
 
-    // 2. Física do Jogador
-    if (leftTouching || rightTouching) {
-      isGrabbing = true;
-    } else {
-      isGrabbing = false;
-    }
-
+    // 2. Física (Se agarrar, desliga a gravidade)
     if (!isGrabbing) {
-      // Se não estiver a agarrar, a gravidade atua
       playerVel.y -= GRAVITY * dt;
     } else {
-      // Se estiver a agarrar, a gravidade é anulada (ele segura-se)
-      playerVel.y = 0; 
+      playerVel.y = 0; // Segura-se!
     }
     
     playerVel.x *= 0.95;
@@ -435,14 +404,13 @@ function loop() {
     if (playerPos.y < 1.6) { playerPos.y = 1.6; playerVel.y = 0; }
     
     camera.position.copy(playerPos);
-    myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, 0.2, 0)); // Cabeça fica um pouco acima
+    myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, 0.2, 0));
 
-    // Sincronização Multiplayer
     if (socket && isMultiplayer && roomCode) {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
     }
 
-    // Hand Tracking
+    // 3. Hand Tracking
     if (handLandmarker && (now - lastHandDetectTime > (1000 / settings.fps))) {
       lastHandDetectTime = now;
       const video = document.getElementById('webcam');
@@ -465,7 +433,6 @@ function loop() {
             const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
             const up = new THREE.Vector3(0,1,0);
             
-            // Posição da mão no mundo (mais perto para agarrar)
             const handWorldPos = new THREE.Vector3().copy(camera.position)
               .add(forward.clone().multiplyScalar(0.5))
               .add(right.clone().multiplyScalar(ndcX * 0.3))
@@ -473,12 +440,10 @@ function loop() {
 
             handMesh.position.copy(handWorldPos);
 
-            // Rotação da mão
             const dx = middleFinger.x - wrist.x; const dy = middleFinger.y - wrist.y; const dz = (middleFinger.z || 0) - (wrist.z || 0);
             handMesh.rotation.x += (Math.atan2(-dy, Math.sqrt(dx*dx + dz*dz)) - handMesh.rotation.x) * 0.5;
             handMesh.rotation.y += (Math.atan2(dx, dz) - handMesh.rotation.y) * 0.5;
 
-            // FÍSICA DE EMPURRÃO (Só se estiver a agarrar)
             if (isGrabbing && prevPos.lengthSq() > 0) {
               const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
               const push = delta.multiplyScalar(-PUSH_MULTIPLIER);
