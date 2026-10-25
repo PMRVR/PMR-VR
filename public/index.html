@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag</title>
+<title>Blocky Tag - Moderação</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -18,14 +18,12 @@
   
   #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 15px; width: 100%; max-width: 300px; }
   
-  /* ABAS */
   .tabs { display: flex; gap: 5px; width: 100%; max-width: 300px; margin-bottom: 15px; background: #222; padding: 4px; border-radius: 10px; }
   .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: #888; font-weight: 600; cursor: pointer; border-radius: 8px; transition: 0.2s; font-size: 14px; }
   .tab-btn.active { background: #444; color: #fff; }
   .tab-content { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 300px; }
   .tab-content.active { display: flex; }
 
-  /* BOTÕES */
   .action-btn { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 16px; margin: 5px 0; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .action-btn:hover { border-color: #00ffaa; background: #333; }
   
@@ -33,7 +31,6 @@
   #btnJoin { background: #4488ff; color: #fff; border-color: #4488ff; }
   #joinCodeInput { padding: 12px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #000; color: #fff; text-align: center; margin-bottom: 10px; width: 100%; font-family: monospace; }
 
-  /* INDICADOR DA SALA NO CANTO (NO JOGO) */
   #roomIndicator { position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.7); border: 1px solid #00ffaa; padding: 10px 15px; border-radius: 10px; font-family: monospace; font-size: 16px; font-weight: bold; display: none; align-items: center; gap: 10px; cursor: pointer; }
   #roomIndicator.show { display: flex; }
   #roomIndicator span { color: #00ffaa; font-size: 20px; }
@@ -44,8 +41,7 @@
   #settingsBtn { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; pointer-events: none; }
   
-  /* PAINEL CONFIGS */
-  #settingsPanel { position: fixed; top: 60px; right: 10px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
+  #settingsPanel { position: fixed; top: 60px; right: 10px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 300px; max-height: 80vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
   #settingsPanel.show { display: flex; }
   #settingsContent { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
   .setting-group h3 { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
@@ -59,6 +55,13 @@
   #toggleMicBtn { width: 100%; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
   #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+  /* MODERAÇÃO (OWNER ONLY) */
+  #adminPanel { display: none; flex-direction: column; gap: 8px; }
+  #adminPanel.show { display: flex; }
+  .player-mod-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px; border-radius: 6px; font-size: 13px; }
+  .mod-btn { background: #ff4444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+  .mod-btn.ban { background: #ffaa00; color: #000; }
   
   #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: none; align-items: center; }
   .toast { background: rgba(20, 20, 20, 0.9); border: 1px solid #00ffaa; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; animation: slideUp 0.3s ease-out; display: flex; align-items: center; gap: 5px; }
@@ -73,41 +76,44 @@
   <h1>Blocky Tag</h1>
   <input type="text" id="usernameInput" placeholder="O teu nome..." maxlength="15" />
   
-  <!-- ABAS -->
   <div class="tabs">
     <button class="tab-btn active" data-tab="play">Jogar</button>
     <button class="tab-btn" data-tab="join">Entrar</button>
     <button class="tab-btn" data-tab="extra">Extra</button>
   </div>
 
-  <!-- CONTEÚDO: JOGAR -->
   <div class="tab-content active" id="tab-play">
-    <button id="btnCreate" class="action-btn">Criar Sala</button>
+    <button id="btnCreate" class="action-btn">Criar Sala (Owner)</button>
     <button id="btnSolo" class="action-btn">Jogar Solo</button>
   </div>
 
-  <!-- CONTEÚDO: ENTRAR -->
   <div class="tab-content" id="tab-join">
     <input type="text" id="joinCodeInput" placeholder="Cole o código da sala" maxlength="80" />
     <button id="btnJoin" class="action-btn">Conectar</button>
   </div>
 
-  <!-- CONTEÚDO: EXTRA -->
   <div class="tab-content" id="tab-extra">
     <button id="landscapeBtn" class="action-btn" style="background: #ffaa00; color: #000; border-color: #ffaa00;">📱 Forçar Paisagem</button>
     <button id="accessoryBtn" class="action-btn" style="background: #4488ff; border-color: #4488ff;">🎩 Acessórios</button>
   </div>
 </div>
 
-<!-- INDICADOR DA ROOM NO CANTO -->
 <div id="roomIndicator" onclick="copyRoomLink()">Sala: <span id="roomCodeText">------</span> 📋</div>
 <div id="hud">A carregar...</div>
 
 <button id="settingsBtn">⚙️</button>
-<div id="version">v13.0.0</div>
+<div id="version">v14.0.0</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
+    
+    <div id="adminPanel">
+      <div class="setting-group">
+        <h3 style="color: #ff4444;">👑 Painel do Dono</h3>
+        <div id="playerModList" style="display: flex; flex-direction: column; gap: 5px;"></div>
+      </div>
+    </div>
+
     <div class="setting-group">
       <h3>Gráficos</h3>
       <div class="setting-options" id="resOptions">
@@ -158,6 +164,7 @@ import { io } from "socket.io-client";
 import { CONFIG } from './configs.js';
 
 let socket = null, roomCode = null, isMultiplayer = false, myUsername = "Jogador", remotePlayers = {}, gameStarted = false, myMuted = true, localStream = null;
+let isOwner = false;
 const peerConnections = {};
 let renderer;
 const settings = { res: localStorage.getItem('pmr_res') || 'medium', fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10), acc: 'none' };
@@ -171,7 +178,6 @@ function showToast(message) {
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
-// ============ THREE.JS SETUP ============
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x555555);
 scene.fog = new THREE.Fog(0x555555, 15, 60);
@@ -191,7 +197,6 @@ createRenderer();
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 
-// ============ MUNDO ============
 const worldGroup = new THREE.Group();
 scene.add(worldGroup);
 const colliders = [];
@@ -209,15 +214,6 @@ const boxMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
   colliders.push(new THREE.Box3().setFromObject(mesh));
 });
 
-const stairMat = new THREE.MeshBasicMaterial({ color: 0x666688 });
-for (let i = 0; i < 5; i++) {
-  const step = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), stairMat);
-  step.position.set(0, 0.25 + (i * 0.5), -3 - (i * 1.5));
-  worldGroup.add(step);
-  colliders.push(new THREE.Box3().setFromObject(step));
-}
-
-// ============ CARA E CORPO ============
 function createFaceTexture(isTalking) {
   const canvas = document.createElement('canvas');
   canvas.width = 256; canvas.height = 256;
@@ -242,7 +238,6 @@ const faceMat = new THREE.MeshBasicMaterial({ map: createFaceTexture(false) });
 const headMaterials = [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat]; 
 
 const myBodyGroup = new THREE.Group();
-
 const bigHead = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), headMaterials);
 bigHead.position.y = 0.4; myBodyGroup.add(bigHead);
 
@@ -251,15 +246,12 @@ belly.position.y = -0.4; myBodyGroup.add(belly);
 
 const hatMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
 hatMesh.position.y = 0.9; hatMesh.visible = false; myBodyGroup.add(hatMesh);
-
 const coneMesh = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 16), new THREE.MeshBasicMaterial({ color: 0xff5500 }));
 coneMesh.position.y = 1.0; coneMesh.visible = false; myBodyGroup.add(coneMesh);
-
 const nutellaMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 16), new THREE.MeshBasicMaterial({ color: 0x880000 }));
 nutellaMesh.position.y = 0.9; nutellaMesh.visible = false; myBodyGroup.add(nutellaMesh);
 const nutellaLid = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
 nutellaLid.position.y = 1.07; nutellaLid.visible = false; myBodyGroup.add(nutellaLid);
-
 const bigheadMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshBasicMaterial({ color: 0x888888 }));
 bigheadMesh.position.y = 0.9; bigheadMesh.visible = false; myBodyGroup.add(bigheadMesh);
 
@@ -278,11 +270,17 @@ const playerPos = new THREE.Vector3(0, CONFIG.PLAYER_HEIGHT, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
 let isGrabbing = false, isGrounded = false;
 
+// ============ GIROSÓPIO OTIMIZADO (O FIX DE 3 LINHAS) ============
 window.addEventListener("deviceorientation", (event) => {
-  if (event.alpha == null || event.beta == null) return;
-  camera.rotation.y = THREE.MathUtils.degToRad(event.alpha);
-  camera.rotation.x = THREE.MathUtils.degToRad(event.beta);
-  camera.rotation.order = 'YXZ';
+  if (event.alpha == null || event.beta == null || event.gamma == null) return;
+  
+  // Fix adaptado para VR Box (paisagem)
+  const horizontal = event.alpha;
+  const vertical = event.gamma; 
+
+  camera.rotation.y = THREE.MathUtils.degToRad(horizontal);
+  camera.rotation.x = THREE.MathUtils.degToRad(vertical); 
+  camera.rotation.order = 'YXZ'; 
 }, true);
 
 let handLandmarker = null, lastVideoTime = -1, prevLeftPos = new THREE.Vector3(), prevRightPos = new THREE.Vector3(), lastHandDetectTime = 0;
@@ -349,7 +347,36 @@ function createPeerConnection(targetId, isInitiator) {
   return pc;
 }
 
-// ============ MULTIPLAYER ============
+// ============ MODERAÇÃO (KICK / BAN) ============
+function renderAdminPanel(players) {
+  const list = document.getElementById('playerModList');
+  list.innerHTML = '';
+  Object.keys(players).forEach(id => {
+    if (id === socket.id) return; // Não mostra ele mesmo
+    const p = players[id];
+    const row = document.createElement('div');
+    row.className = 'player-mod-row';
+    row.innerHTML = `
+      <span>${p.username}</span>
+      <div>
+        <button class="mod-btn" onclick="kickPlayer('${id}')">Expulsar</button>
+        <button class="mod-btn ban" onclick="banPlayer('${id}')">Banir</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+window.kickPlayer = (id) => {
+  if (socket) socket.emit('moderatePlayer', { roomCode, targetId: id, action: 'kick' });
+  showToast("Jogador expulso.");
+};
+window.banPlayer = (id) => {
+  if (socket) socket.emit('moderatePlayer', { roomCode, targetId: id, action: 'ban' });
+  showToast("Jogador banido para sempre.");
+};
+
+// ============ SOCKET.IO ============
 function setupSocketEvents() {
   socket.on('connect', () => {
     socket.emit('joinRoom', { roomCode, username: myUsername });
@@ -360,14 +387,44 @@ function setupSocketEvents() {
     gameStarted = true;
     socket.emit('updateAccessory', { roomCode, accessory: settings.acc });
   });
+
+  socket.on('ownerStatus', (status) => {
+    isOwner = status;
+    if (isOwner) document.getElementById('adminPanel').classList.add('show');
+  });
+
+  socket.on('kickedError', (msg) => { alert(msg); location.reload(); });
+  socket.on('bannedError', (msg) => { alert(msg); location.reload(); });
   
-  socket.on('currentPlayers', (players) => { Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY, players[id].accessory); }); });
-  socket.on('newPlayer', (player) => { addRemotePlayer(player.id, player.position, player.username, player.rotY, player.accessory); showToast(`${player.username} entrou!`); });
+  socket.on('currentPlayers', (players) => { 
+    Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY, players[id].accessory); }); 
+    if (isOwner) renderAdminPanel(players);
+  });
+  
+  socket.on('newPlayer', (player) => { 
+    addRemotePlayer(player.id, player.position, player.username, player.rotY, player.accessory); 
+    showToast(`${player.username} entrou!`); 
+    if (isOwner) {
+      // Re-renderiza o painel para incluir o novo jogador
+      const dummyPlayers = { ...remotePlayers, [player.id]: player };
+      renderAdminPanel(dummyPlayers);
+    }
+  });
+  
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
-  socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.rotation.y = data.rotY; });
+  socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].targetRotY = data.rotY; });
   socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) { remotePlayers[data.id].isTalking = !data.muted; remotePlayers[data.id].faceMat.map = createFaceTexture(!data.muted); remotePlayers[data.id].faceMat.needsUpdate = true; } });
   socket.on('playerAccessoryChanged', (data) => { if (remotePlayers[data.id]) updateRemoteAccessory(remotePlayers[data.id], data.accessory); });
-  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } } });
+  socket.on('playerDisconnected', (id) => { 
+    if (remotePlayers[id]) { 
+      showToast(`${remotePlayers[id].username} saiu.`); 
+      scene.remove(remotePlayers[id].group); 
+      delete remotePlayers[id]; 
+      if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } 
+      if (isOwner) renderAdminPanel(remotePlayers);
+    } 
+  });
+  
   socket.on('webrtc-offer', async (data) => { const pc = createPeerConnection(data.sender, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('webrtc-answer', { target: data.sender, answer }); });
   socket.on('webrtc-answer', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); });
   socket.on('webrtc-ice-candidate', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); });
@@ -377,7 +434,6 @@ function setupSocketEvents() {
 
 function addRemotePlayer(id, position, username, rotY, accessory) {
   const group = new THREE.Group();
-  
   const remoteFaceMat = new THREE.MeshBasicMaterial({ map: createFaceTexture(false) });
   const remoteSideMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
   const remoteHeadMats = [remoteSideMat, remoteSideMat, remoteSideMat, remoteSideMat, remoteFaceMat, remoteSideMat];
@@ -390,22 +446,19 @@ function addRemotePlayer(id, position, username, rotY, accessory) {
 
   const rHat = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
   rHat.position.y = 0.9; rHat.visible = false; group.add(rHat);
-
   const rCone = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 16), new THREE.MeshBasicMaterial({ color: 0xff5500 }));
   rCone.position.y = 1.0; rCone.visible = false; group.add(rCone);
-
   const rNutella = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 16), new THREE.MeshBasicMaterial({ color: 0x880000 }));
   rNutella.position.y = 0.9; rNutella.visible = false; group.add(rNutella);
   const rNutellaLid = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   rNutellaLid.position.y = 1.07; rNutellaLid.visible = false; group.add(rNutellaLid);
-
   const rBighead = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshBasicMaterial({ color: 0x888888 }));
   rBighead.position.y = 0.9; rBighead.visible = false; group.add(rBighead);
 
   group.position.set(position.x, position.y, position.z); group.rotation.y = rotY || 0;
   scene.add(group);
   
-  const rp = { group, username, faceMat: remoteFaceMat, isTalking: false, acc: { hat: rHat, cone: rCone, nutella: rNutella, nutellaLid: rNutellaLid, bighead: rBighead } };
+  const rp = { group, username, faceMat: remoteFaceMat, isTalking: false, targetRotY: rotY, acc: { hat: rHat, cone: rCone, nutella: rNutella, nutellaLid: rNutellaLid, bighead: rBighead } };
   updateRemoteAccessory(rp, accessory);
   remotePlayers[id] = rp; 
 }
@@ -475,6 +528,17 @@ function loop() {
     myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
     myBodyGroup.rotation.y = camera.rotation.y; 
 
+    // Interpolação de rotação suave
+    Object.keys(remotePlayers).forEach(id => {
+      const rp = remotePlayers[id];
+      if (rp.targetRotY !== undefined) {
+        let diff = rp.targetRotY - rp.group.rotation.y;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        rp.group.rotation.y += diff * 0.2;
+      }
+    });
+
     if (socket && isMultiplayer && roomCode) {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
       const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
@@ -530,7 +594,7 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-// ============ FUNÇÕES UI ============
+// ============ UI FUNCTIONS ============
 window.copyRoomLink = () => {
   const link = `${window.location.origin}?room=${roomCode}`;
   navigator.clipboard.writeText(link).then(() => showToast("Link da sala copiado!"));
