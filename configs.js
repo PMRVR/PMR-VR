@@ -1,8 +1,8 @@
 // configs.js
 export const CONFIG = {
   // ===== VOICE CHAT (Metered TURN) =====
-  TURN_USERNAME: "COLOCA_O_TEU_USERNAME_AQUI",
-  TURN_CREDENTIAL: "COLOCA_A_TUA_PASSWORD_AQUI",
+  TURN_USERNAME: "faca460dce2b47a95815c29b",
+  TURN_CREDENTIAL: "kI3GUMJr8QgqdsvP",
 
   // ===== FÍSICA =====
   GRAVITY: 20,
