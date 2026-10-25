@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Gyro Fix by Mestre</title>
+<title>Blocky Tag</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -70,7 +70,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v7.0.0 - Gyro Mestre</div>
+<div id="version">v8.0.0 - Modular</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -112,25 +112,14 @@
 import * as THREE from 'three';
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
 import { io } from "socket.io-client";
+import { CONFIG } from './configs.js'; // IMPORTA AS CONFIGS
 
 lucide.createIcons();
 
-// ============ ESTADO ============
-let socket = null;
-let roomCode = null;
-let isMultiplayer = false;
-let myUsername = "Jogador";
-let remotePlayers = {};
-let gameStarted = false;
-let myMuted = true;
-let localStream = null;
+let socket = null, roomCode = null, isMultiplayer = false, myUsername = "Jogador", remotePlayers = {}, gameStarted = false, myMuted = true, localStream = null;
 const peerConnections = {};
-
 let renderer;
-const settings = {
-  res: localStorage.getItem('pmr_res') || 'medium',
-  fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10)
-};
+const settings = { res: localStorage.getItem('pmr_res') || 'medium', fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10) };
 
 function showToast(message, icon = 'info') {
   const container = document.getElementById('toastContainer');
@@ -142,7 +131,6 @@ function showToast(message, icon = 'info') {
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
-// ============ THREE.JS ============
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x555555);
 scene.fog = new THREE.Fog(0x555555, 15, 60);
@@ -162,18 +150,15 @@ createRenderer();
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 
-// ============ MUNDO E COLISORES ============
 const worldGroup = new THREE.Group();
 scene.add(worldGroup);
 const colliders = [];
 
-// Chão
 const floor = new THREE.Mesh(new THREE.BoxGeometry(100, 1, 100), new THREE.MeshBasicMaterial({ color: 0x888888 }));
 floor.position.y = -0.5;
 worldGroup.add(floor);
 colliders.push(new THREE.Box3().setFromObject(floor));
 
-// Blocos Normais
 const boxMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
 [{ x: 5, z: -5, size: 2 }, { x: -5, z: -8, size: 3 }, { x: 0, z: -12, size: 4 }].forEach(b => {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size, b.size, b.size), boxMat);
@@ -182,7 +167,6 @@ const boxMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
   colliders.push(new THREE.Box3().setFromObject(mesh));
 });
 
-// ============ ESCADA DE TESTE ============
 const stairMat = new THREE.MeshBasicMaterial({ color: 0x666688 });
 for (let i = 0; i < 5; i++) {
   const step = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), stairMat);
@@ -191,13 +175,12 @@ for (let i = 0; i < 5; i++) {
   colliders.push(new THREE.Box3().setFromObject(step));
 }
 
-// ============ CABEÇA E MÃOS ============
 const myBodyGroup = new THREE.Group();
-const bigHead = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+const bigHead = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
 myBodyGroup.add(bigHead);
 scene.add(myBodyGroup);
 
-const handGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+const handGeo = new THREE.BoxGeometry(CONFIG.HAND_SIZE, CONFIG.HAND_SIZE, CONFIG.HAND_SIZE);
 const leftHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
 const rightHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
 scene.add(leftHandMesh);
@@ -205,34 +188,21 @@ scene.add(rightHandMesh);
 
 const leftHandBox = new THREE.Box3();
 const rightHandBox = new THREE.Box3();
+const playerBox = new THREE.Box3();
 
-// ============ FÍSICA ============
-const playerPos = new THREE.Vector3(0, 1.6, 0);
+const playerPos = new THREE.Vector3(0, CONFIG.PLAYER_HEIGHT, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
-const GRAVITY = 20;
-const PUSH_MULTIPLIER = 400; 
-const MAX_SPEED = 15;
-let isGrabbing = false;
+let isGrabbing = false, isGrounded = false;
 
-// ============ GIROSCÓPIO DO MESTRE (A TUA DESCOBERTA) ============
+// GIROSCÓPIO DO MESTRE
 window.addEventListener("deviceorientation", (event) => {
   if (event.alpha == null || event.beta == null) return;
-
-  const horizontal = event.alpha;
-  const vertical = event.beta;
-
-  // A MÁGICA SIMPLIFICADA: Y = Alpha, X = Beta. E o Gamma (volante) é ignorado.
-  camera.rotation.y = THREE.MathUtils.degToRad(horizontal);
-  camera.rotation.x = THREE.MathUtils.degToRad(vertical);
-  camera.rotation.order = 'YXZ'; // Importante para o X e Y não se baralharem
+  camera.rotation.y = THREE.MathUtils.degToRad(event.alpha);
+  camera.rotation.x = THREE.MathUtils.degToRad(event.beta);
+  camera.rotation.order = 'YXZ';
 }, true);
 
-// ============ HAND TRACKING ============
-let handLandmarker = null;
-let lastVideoTime = -1;
-let prevLeftPos = new THREE.Vector3();
-let prevRightPos = new THREE.Vector3();
-let lastHandDetectTime = 0;
+let handLandmarker = null, lastVideoTime = -1, prevLeftPos = new THREE.Vector3(), prevRightPos = new THREE.Vector3(), lastHandDetectTime = 0;
 
 async function initHandTracking() {
   try {
@@ -250,7 +220,6 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
-// ============ VOICE CHAT ============
 let audioContext = null, audioAnalyser = null, audioDataArray = null;
 async function toggleMicrophone() {
   if (myMuted) {
@@ -285,13 +254,11 @@ async function toggleMicrophone() {
 
 function createPeerConnection(targetId, isInitiator) {
   if (peerConnections[targetId]) return peerConnections[targetId];
-  const TURN_USERNAME = "faca460dce2b47a95815c29b"; // METE O TEU
-  const TURN_CREDENTIAL = "kI3GUMJr8QgqdsvP"; // METE O TEU
   const pc = new RTCPeerConnection({
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'turn:global.relay.metered.ca:80', username: TURN_USERNAME, credential: TURN_CREDENTIAL },
-      { urls: 'turn:global.relay.metered.ca:443', username: TURN_USERNAME, credential: TURN_CREDENTIAL }
+      { urls: 'turn:global.relay.metered.ca:80', username: CONFIG.TURN_USERNAME, credential: CONFIG.TURN_CREDENTIAL },
+      { urls: 'turn:global.relay.metered.ca:443', username: CONFIG.TURN_USERNAME, credential: CONFIG.TURN_CREDENTIAL }
     ]
   });
   peerConnections[targetId] = pc;
@@ -302,7 +269,6 @@ function createPeerConnection(targetId, isInitiator) {
   return pc;
 }
 
-// ============ NAMETAG ============
 const nametagCanvases = {};
 function createNametag(id, text) {
   const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 256; canvas.height = 64;
@@ -321,7 +287,6 @@ function drawNametag(id, isTalking) {
   if (canvas.texture) canvas.texture.needsUpdate = true;
 }
 
-// ============ MULTIPLAYER ============
 function connectToServer() {
   roomCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
@@ -354,14 +319,13 @@ function updatePlayerList(players, isNew) {
 }
 function addRemotePlayer(id, position, username) {
   const group = new THREE.Group();
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
   group.add(mesh);
   const tag = createNametag(id, username); group.add(tag);
   group.position.set(position.x, position.y, position.z); scene.add(group);
   remotePlayers[id] = { group, username }; updatePlayerList({}, true);
 }
 
-// ============ LOOP (FÍSICA E CLIMB) ============
 let lastTime = performance.now();
 function loop() {
   requestAnimationFrame(loop);
@@ -378,7 +342,6 @@ function loop() {
   }
 
   if (gameStarted) {
-    // 1. Verifica colisão das mãos (Climb)
     leftHandBox.setFromCenterAndSize(leftHandMesh.position, new THREE.Vector3(0.2, 0.2, 0.2));
     rightHandBox.setFromCenterAndSize(rightHandMesh.position, new THREE.Vector3(0.2, 0.2, 0.2));
     
@@ -389,20 +352,48 @@ function loop() {
     });
     isGrabbing = touching;
 
-    // 2. Física (Se agarrar, desliga a gravidade)
     if (!isGrabbing) {
-      playerVel.y -= GRAVITY * dt;
+      playerVel.y -= CONFIG.GRAVITY * dt;
     } else {
-      playerVel.y = 0; // Segura-se!
+      playerVel.y = 0; 
     }
-    
-    playerVel.x *= 0.95;
-    playerVel.z *= 0.95;
+
+    if (isGrounded) {
+      playerVel.x *= CONFIG.GROUND_FRICTION;
+      playerVel.z *= CONFIG.GROUND_FRICTION;
+    } else {
+      playerVel.x *= CONFIG.AIR_DRAG;
+      playerVel.z *= CONFIG.AIR_DRAG;
+    }
+
+    const prevPos = playerPos.clone();
     playerPos.addScaledVector(playerVel, dt);
 
-    // Colisão do jogador com o chão
-    if (playerPos.y < 1.6) { playerPos.y = 1.6; playerVel.y = 0; }
-    
+    // COLISÃO DO JOGADOR
+    playerBox.setFromCenterAndSize(playerPos, new THREE.Vector3(CONFIG.PLAYER_RADIUS*2, 1.0, CONFIG.PLAYER_RADIUS*2));
+    let colliding = false;
+    for (let i = 0; i < colliders.length; i++) {
+      if (playerBox.intersectsBox(colliders[i])) {
+        colliding = true;
+        if (playerPos.y > prevPos.y) { 
+          playerPos.y = prevPos.y; playerVel.y = 0;
+        } else if (playerPos.y < prevPos.y) { 
+          if (colliders[i].max.y < 0.5) {
+            playerPos.y = CONFIG.PLAYER_HEIGHT; playerVel.y = 0; isGrounded = true;
+          } else {
+            playerPos.y = colliders[i].max.y + CONFIG.PLAYER_HEIGHT; playerVel.y = 0; isGrounded = true;
+          }
+        }
+        // Colisão lateral (para não atravessar as caixas)
+        if (Math.abs(playerPos.x - prevPos.x) > Math.abs(playerPos.z - prevPos.z)) {
+          playerPos.x = prevPos.x; playerVel.x = 0;
+        } else {
+          playerPos.z = prevPos.z; playerVel.z = 0;
+        }
+      }
+    }
+    if (!colliding) isGrounded = false;
+
     camera.position.copy(playerPos);
     myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, 0.2, 0));
 
@@ -410,7 +401,6 @@ function loop() {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
     }
 
-    // 3. Hand Tracking
     if (handLandmarker && (now - lastHandDetectTime > (1000 / settings.fps))) {
       lastHandDetectTime = now;
       const video = document.getElementById('webcam');
@@ -423,7 +413,7 @@ function loop() {
           results.landmarks.forEach((lm, index) => {
             const isRight = index === 1; 
             const handMesh = isRight ? rightHandMesh : leftHandMesh;
-            const prevPos = isRight ? prevRightPos : prevLeftPos;
+            const prevHandPos = isRight ? prevRightPos : prevLeftPos;
             handMesh.visible = true;
 
             const indexTip = lm[8]; const wrist = lm[0]; const middleFinger = lm[9];
@@ -444,13 +434,13 @@ function loop() {
             handMesh.rotation.x += (Math.atan2(-dy, Math.sqrt(dx*dx + dz*dz)) - handMesh.rotation.x) * 0.5;
             handMesh.rotation.y += (Math.atan2(dx, dz) - handMesh.rotation.y) * 0.5;
 
-            if (isGrabbing && prevPos.lengthSq() > 0) {
-              const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
-              const push = delta.multiplyScalar(-PUSH_MULTIPLIER);
+            if (isGrabbing && prevHandPos.lengthSq() > 0) {
+              const delta = new THREE.Vector3().subVectors(handWorldPos, prevHandPos);
+              const push = delta.multiplyScalar(-CONFIG.PUSH_MULTIPLIER);
               playerVel.add(push);
-              if (playerVel.length() > MAX_SPEED) playerVel.normalize().multiplyScalar(MAX_SPEED);
+              if (playerVel.length() > CONFIG.MAX_SPEED) playerVel.normalize().multiplyScalar(CONFIG.MAX_SPEED);
             }
-            prevPos.copy(handWorldPos);
+            prevHandPos.copy(handWorldPos);
           });
         }
       }
@@ -459,7 +449,6 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-// ============ QUITAR ============
 function leaveRoom() {
   if (socket) { socket.disconnect(); socket = null; }
   Object.keys(remotePlayers).forEach(id => { scene.remove(remotePlayers[id].group); delete remotePlayers[id]; });
@@ -474,7 +463,6 @@ function leaveRoom() {
   showToast("Saíste da sala.", 'log-out');
 }
 
-// ============ UI EVENTOS ============
 document.getElementById('btnMultiplayer').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); connectToServer(); };
 document.getElementById('btnSolo').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); gameStarted = true; document.getElementById('menu').classList.add('hidden'); };
 document.getElementById('copyBtn').onclick = () => { const link = document.getElementById('shareLinkInput').value; navigator.clipboard.writeText(link).then(() => { document.getElementById('copyBtn').innerHTML = `<i data-lucide="check"></i> Copiado!`; lucide.createIcons(); setTimeout(() => { document.getElementById('copyBtn').innerHTML = `<i data-lucide="copy"></i> Copiar Link`; lucide.createIcons(); }, 2000); }); };
@@ -484,7 +472,6 @@ document.getElementById('closeSettings').onclick = () => document.getElementById
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
 document.getElementById('leaveRoomBtn').onclick = leaveRoom;
 
-// Link direto
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
 if (roomParam) {
