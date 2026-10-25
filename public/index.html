@@ -3,27 +3,40 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Voice Chat</title>
+<title>Blocky Tag - Lobby</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
   canvas { display: block; }
 
-  #menu { position: fixed; inset: 0; z-index: 1000; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  /* MENU / LOBBY */
+  #menu { position: fixed; inset: 0; z-index: 1000; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #menu.hidden { display: none; }
   #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
   #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 20px; width: 250px; }
   #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 8px; border-radius: 10px; cursor: pointer; width: 250px; font-weight: 600; transition: 0.2s; }
   #menu button:hover { border-color: #00ffaa; background: #333; }
   
-  #lobby { display: none; flex-direction: column; align-items: center; margin-top: 20px; background: #1a1a1a; padding: 15px 25px; border-radius: 15px; border: 1px solid #333; width: 90%; max-width: 400px; }
-  #lobby.show { display: flex; }
-  #lobby h2 { font-size: 16px; color: #00ffaa; margin-bottom: 10px; }
-  #playerList { list-style: none; width: 100%; margin-bottom: 15px; font-size: 14px; color: #ccc; }
-  #playerList li { padding: 5px 0; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px; }
-  #copyBtn { background: #00ffaa; color: #000; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; width: 100%; }
+  /* LOBBY BOX */
+  #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
+  #lobbyBox.show { display: flex; }
+  #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  
+  #roomCodeDisplay { font-family: monospace; font-size: 28px; font-weight: bold; color: #fff; margin-bottom: 10px; letter-spacing: 2px; }
+  
+  #shareLinkInput { width: 100%; padding: 10px; background: #000; border: 1px solid #333; border-radius: 8px; color: #888; font-size: 12px; margin-bottom: 10px; text-align: center; }
+  
+  #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: 0.2s; }
+  #copyBtn:active { transform: scale(0.95); }
+  
+  #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; }
+  #playerList li { padding: 5px 0; display: flex; align-items: center; gap: 8px; }
 
+  #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
+  #startGameBtn.show { display: block; }
+
+  /* HUD E OUTROS */
   #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
   #settingsBtn { position: fixed; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.5); border: 1px solid #444; color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
@@ -31,14 +44,12 @@
   
   #settingsPanel { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; }
   #settingsPanel.show { display: flex; }
-  #settingsPanel h2 { margin-bottom: 20px; }
   #voiceStatus { padding: 10px; border-radius: 5px; background: #222; border: 1px solid #444; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
   #voiceDot { width: 12px; height: 12px; border-radius: 50%; background: #ff4444; }
   #settingsPanel button { background: #333; border: none; color: #fff; padding: 10px 30px; border-radius: 5px; cursor: pointer; margin: 5px; }
   .active-voice { background: #00ffaa !important; color: #000 !important; }
 
   .nametag { position: fixed; top: 0; left: 0; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 5; transform: translate(-50%, -50%); white-space: nowrap; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; }
-  .nametag .mic-icon { font-size: 10px; }
 </style>
 </head>
 <body>
@@ -46,29 +57,32 @@
 <div id="menu">
   <h1>Blocky Tag</h1>
   <input type="text" id="usernameInput" placeholder="O teu nome..." maxlength="15" />
+  
   <button id="btnMultiplayer">🌐 Criar Sala</button>
   <button id="btnSolo">🎮 Jogar Solo</button>
 
-  <div id="lobby">
-    <h2>Sala de Espera</h2>
+  <div id="lobbyBox">
+    <h3>Link para Amigo</h3>
+    <div id="roomCodeDisplay"></div>
+    <input type="text" id="shareLinkInput" readonly />
+    <button id="copyBtn">📋 Copiar Link</button>
+    
     <ul id="playerList"></ul>
-    <button id="copyBtn">📋 Copiar Link para Amigo</button>
+    <button id="startGameBtn">🚀 Entrar no Jogo</button>
   </div>
 </div>
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn">⚙️ Configurações</button>
-<div id="version">v2.0.0 - Voice Chat</div>
+<div id="version">v2.1.0 - Lobby</div>
 
 <div id="settingsPanel">
   <h2>Configurações</h2>
-  
   <div id="voiceStatus">
     <div id="voiceDot"></div>
     <span id="voiceText">Microfone Desligado</span>
   </div>
   <button id="toggleMicBtn">🎤 Ativar Microfone</button>
-  
   <button id="closeSettings" style="margin-top: 30px;">Fechar</button>
 </div>
 
@@ -88,14 +102,15 @@ import * as THREE from 'three';
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
 import { io } from "socket.io-client";
 
-// ============ ESTADO GLOBAL ============
+// ============ ESTADO ============
 let socket = null;
 let roomCode = null;
 let isMultiplayer = false;
 let myUsername = "Jogador";
 let remotePlayers = {};
 let localStream = null;
-const peerConnections = {}; // Conexões de voz WebRTC
+const peerConnections = {};
+let gameStarted = false;
 
 // ============ THREE.JS ============
 const scene = new THREE.Scene();
@@ -134,44 +149,17 @@ const GRAVITY = 20;
 const PUSH_MULTIPLIER = 350; 
 const MAX_SPEED = 15;
 
-// ============ GIROSCÓPIO ABSOLUTE (ESTÁVEL) ============
-// API otimizada para evitar o "giroscópio cagão" que treme
-if (typeof AbsoluteOrientationSensor === 'function') {
-  try {
-    const sensor = new AbsoluteOrientationSensor({ frequency: 60 });
-    sensor.addEventListener('reading', () => {
-      const q = sensor.quaternion;
-      const q1 = new THREE.Quaternion(q[0], q[1], q[2], q[3]);
-      // Rotação -90 X para alinhar o ecrã à frente
-      const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-      camera.quaternion.multiplyQuaternions(q2, q1);
-    });
-    sensor.start();
-  } catch (e) { console.warn("Sensor API falhou:", e); }
-} else {
-  // Fallback para telemóveis antigos
-  let baseAlpha = null;
-  window.addEventListener('deviceorientation', (e) => {
-    if (e.alpha == null) return;
-    if (baseAlpha === null) baseAlpha = e.alpha;
-    const r = Math.PI / 180;
-    const euler = new THREE.Euler(e.beta * r, (e.alpha - baseAlpha) * r, -e.gamma * r, 'YXZ');
-    const q1 = new THREE.Quaternion().setFromEuler(euler);
-    const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-    camera.quaternion.multiplyQuaternions(q2, q1);
-  }, true);
-}
-
-// Fallback PC
-let isMouseDown = false;
-document.addEventListener('mousemove', (e) => {
-  if (isMouseDown && !('AbsoluteOrientationSensor' in window)) {
-    camera.rotation.y -= e.movementX * 0.002;
-    camera.rotation.x -= e.movementY * 0.002;
-  }
-});
-document.addEventListener('mousedown', () => isMouseDown = true);
-document.addEventListener('mouseup', () => isMouseDown = false);
+// ============ GIROSCÓPIO ============
+let baseAlpha = null;
+window.addEventListener('deviceorientation', (e) => {
+  if (e.alpha == null) return;
+  if (baseAlpha === null) baseAlpha = e.alpha;
+  const r = Math.PI / 180;
+  const euler = new THREE.Euler(e.beta * r, (e.alpha - baseAlpha) * r, -e.gamma * r, 'YXZ');
+  const q1 = new THREE.Quaternion().setFromEuler(euler);
+  const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+  camera.quaternion.multiplyQuaternions(q2, q1);
+}, true);
 
 // ============ HAND TRACKING ============
 let handLandmarker = null;
@@ -187,203 +175,47 @@ async function initHandTracking() {
     video.srcObject = stream;
     await video.play();
     video.style.display = 'block';
-
     const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
     handLandmarker = await HandLandmarker.createFromOptions(vision, {
       baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "CPU" },
-      runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.4, minTrackingConfidence: 0.4
+      runningMode: "VIDEO", numHands: 2
     });
     document.getElementById('hud').textContent = 'Hand Tracking Ativo';
   } catch (e) { console.error(e); }
 }
 
-// ============ VOICE CHAT (WEBRTC) ============
+// ============ VOICE CHAT ============
 let isMicOn = false;
 let localAudioTrack = null;
 
 async function toggleMicrophone() {
   if (!isMicOn) {
     try {
-      // Pede permissão do microfone
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localAudioTrack = localStream.getAudioTracks()[0];
       isMicOn = true;
-      
-      // Atualiza UI
       document.getElementById('toggleMicBtn').textContent = "🔇 Desativar Microfone";
       document.getElementById('toggleMicBtn').classList.add('active-voice');
-      document.getElementById('voiceDot').style.background = '#00ffaa'; // Verde
+      document.getElementById('voiceDot').style.background = '#00ffaa';
       document.getElementById('voiceText').textContent = "A falar...";
-      
-      // Avisa o servidor
       if (socket) socket.emit('toggleMute', { roomCode, muted: false });
-
-      // Cria conexões WebRTC para quem já está na sala
-      for (let id in remotePlayers) {
-        createPeerConnection(id, true);
-      }
-
     } catch (err) {
-      console.warn("Microfone negado", err);
       document.getElementById('voiceDot').style.background = '#ff4444';
-      document.getElementById('voiceText').textContent = "Microfone bloqueado pelo browser";
+      document.getElementById('voiceText').textContent = "Microfone bloqueado";
     }
   } else {
-    // Desligar
     isMicOn = false;
     if (localAudioTrack) { localAudioTrack.stop(); localAudioTrack = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    
     document.getElementById('toggleMicBtn').textContent = "🎤 Ativar Microfone";
     document.getElementById('toggleMicBtn').classList.remove('active-voice');
-    document.getElementById('voiceDot').style.background = '#ffcc00'; // Amarelo
+    document.getElementById('voiceDot').style.background = '#ffcc00';
     document.getElementById('voiceText').textContent = "Silenciado";
-    
     if (socket) socket.emit('toggleMute', { roomCode, muted: true });
   }
 }
 
-function createPeerConnection(targetId, isInitiator) {
-  if (peerConnections[targetId]) return peerConnections[targetId];
-  
-  const pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-  });
-  peerConnections[targetId] = pc;
-
-  // Adiciona a nossa voz (se tivermos)
-  if (localStream) {
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-  }
-
-  // Quando recebemos a voz do outro
-  pc.ontrack = (event) => {
-    const audio = new Audio();
-    audio.srcObject = event.streams[0];
-    audio.play();
-  };
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      socket.emit('webrtc-ice-candidate', { target: targetId, candidate: event.candidate });
-    }
-  };
-
-  if (isInitiator) {
-    pc.createOffer().then(offer => {
-      pc.setLocalDescription(offer);
-      socket.emit('webrtc-offer', { target: targetId, offer });
-    });
-  }
-
-  return pc;
-}
-
-// ============ LOOP DO JOGO ============
-let lastTime = performance.now();
-function loop() {
-  requestAnimationFrame(loop);
-  const now = performance.now();
-  const dt = Math.min((now - lastTime) / 1000, 0.1);
-  lastTime = now;
-
-  // Física
-  playerVel.y -= GRAVITY * dt;
-  playerVel.x *= 0.95;
-  playerVel.z *= 0.95;
-  playerPos.addScaledVector(playerVel, dt);
-
-  if (playerPos.y < 1.6) { playerPos.y = 1.6; playerVel.y = 0; }
-  camera.position.copy(playerPos);
-
-  // Sincronização Multiplayer
-  if (socket && isMultiplayer && roomCode) {
-    socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
-  }
-
-  // Nametags
-  const vector = new THREE.Vector3();
-  Object.keys(remotePlayers).forEach(id => {
-    const rp = remotePlayers[id];
-    if (rp.mesh) {
-      vector.set(rp.mesh.position.x, rp.mesh.position.y + 0.6, rp.mesh.position.z);
-      vector.project(camera);
-      const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-      const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
-      
-      if (vector.z < 1) {
-        rp.nametag.style.display = 'flex';
-        rp.nametag.style.left = `${x}px`;
-        rp.nametag.style.top = `${y}px`;
-      } else {
-        rp.nametag.style.display = 'none';
-      }
-    }
-  });
-
-  // Hand Tracking
-  if (handLandmarker && (now - lastHandDetectTime > 50)) {
-    lastHandDetectTime = now;
-    const video = document.getElementById('webcam');
-    if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-      lastVideoTime = video.currentTime;
-      const results = handLandmarker.detectForVideo(video, now);
-      leftHandMesh.visible = false;
-      rightHandMesh.visible = false;
-
-      if (results.landmarks) {
-        results.landmarks.forEach((lm, index) => {
-          const isRight = index === 1; 
-          const handMesh = isRight ? rightHandMesh : leftHandMesh;
-          const prevPos = isRight ? prevRightPos : prevLeftPos;
-          handMesh.visible = true;
-
-          const indexTip = lm[8];
-          const wrist = lm[0];
-          const middleFinger = lm[9];
-
-          const ndcX = (1 - indexTip.x) * 2 - 1;
-          const ndcY = -(indexTip.y * 2 - 1);
-          
-          const forward = new THREE.Vector3();
-          camera.getWorldDirection(forward);
-          const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
-          const up = new THREE.Vector3(0,1,0);
-          
-          const handWorldPos = new THREE.Vector3().copy(camera.position)
-            .add(forward.clone().multiplyScalar(0.6))
-            .add(right.clone().multiplyScalar(ndcX * 0.4))
-            .add(up.clone().multiplyScalar(ndcY * 0.4));
-
-          handMesh.position.copy(handWorldPos);
-
-          const dx = middleFinger.x - wrist.x;
-          const dy = middleFinger.y - wrist.y;
-          const dz = (middleFinger.z || 0) - (wrist.z || 0);
-          handMesh.rotation.x += (Math.atan2(-dy, Math.sqrt(dx*dx + dz*dz)) - handMesh.rotation.x) * 0.5;
-          handMesh.rotation.y += (Math.atan2(dx, dz) - handMesh.rotation.y) * 0.5;
-
-          if (prevPos.lengthSq() > 0) {
-            const velocity = new THREE.Vector3().subVectors(handWorldPos, prevPos);
-            const pushF = velocity.dot(forward); 
-            const pushR = velocity.dot(right);
-            const pushU = velocity.dot(up);
-
-            if (Math.abs(pushF) > 0.005) playerVel.addScaledVector(forward, -pushF * PUSH_MULTIPLIER);
-            if (Math.abs(pushR) > 0.005) playerVel.addScaledVector(right, -pushR * PUSH_MULTIPLIER);
-            if (Math.abs(pushU) > 0.005) playerVel.addScaledVector(up, -pushU * PUSH_MULTIPLIER);
-
-            if (playerVel.length() > MAX_SPEED) playerVel.normalize().multiplyScalar(MAX_SPEED);
-          }
-          prevPos.copy(handWorldPos);
-        });
-      }
-    }
-  }
-  renderer.render(scene, camera);
-}
-
-// ============ LÓGICA MULTIPLAYER ============
+// ============ MULTIPLAYER ============
 function connectToServer() {
   roomCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
@@ -392,25 +224,27 @@ function connectToServer() {
   socket.on('connect', () => {
     socket.emit('joinRoom', { roomCode, username: myUsername });
     
-    document.getElementById('roomCodeDisplay').textContent = `Sala: ${roomCode}`;
+    // Preenche o Lobby
+    document.getElementById('roomCodeDisplay').textContent = roomCode;
     const link = `${window.location.origin}?room=${roomCode}`;
-    document.getElementById('lobby').classList.add('show');
-    updateLobbyList();
+    document.getElementById('shareLinkInput').value = link;
+    
+    document.getElementById('lobbyBox').classList.add('show');
+    document.getElementById('playerList').innerHTML = `<li>👤 ${myUsername} (Tu)</li>`;
   });
 
   socket.on('currentPlayers', (players) => {
-    document.getElementById('playerList').innerHTML = '';
     Object.keys(players).forEach(id => {
-      addPlayerToLobbyList(players[id].username);
-      if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username);
+      if (id !== socket.id) {
+        document.getElementById('playerList').innerHTML += `<li>👤 ${players[id].username}</li>`;
+        addRemotePlayer(id, players[id].position, players[id].username);
+      }
     });
   });
 
   socket.on('newPlayer', (player) => {
-    addPlayerToLobbyList(player.username);
+    document.getElementById('playerList').innerHTML += `<li>👤 ${player.username}</li>`;
     addRemotePlayer(player.id, player.position, player.username);
-    // Se estamos com o microfone ligado, ligamos ao novo jogador
-    if (isMicOn) createPeerConnection(player.id, true);
   });
 
   socket.on('playerMoved', (data) => {
@@ -419,54 +253,17 @@ function connectToServer() {
     }
   });
 
-  socket.on('playerMuteChanged', (data) => {
-    if (remotePlayers[data.id]) {
-      // Atualiza o ícone do nametag do outro jogador
-      const icon = remotePlayers[data.id].nametag.querySelector('.mic-icon');
-      if (icon) icon.textContent = data.muted ? '🔇' : '🎙️';
-    }
-  });
-
   socket.on('playerDisconnected', (id) => {
     if (remotePlayers[id]) {
       scene.remove(remotePlayers[id].mesh);
       remotePlayers[id].nametag.remove();
       delete remotePlayers[id];
-      if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; }
     }
   });
 
-  // WebRTC Signaling
-  socket.on('webrtc-offer', async (data) => {
-    const pc = createPeerConnection(data.sender, false);
-    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('webrtc-answer', { target: data.sender, answer });
-  });
-
-  socket.on('webrtc-answer', async (data) => {
-    const pc = peerConnections[data.sender];
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-  });
-
-  socket.on('webrtc-ice-candidate', async (data) => {
-    const pc = peerConnections[data.sender];
-    if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-  });
-
   isMultiplayer = true;
-  document.getElementById('menu').classList.add('hidden');
-}
-
-function addPlayerToLobbyList(username) {
-  const li = document.createElement('li');
-  li.innerHTML = `👤 ${username}`;
-  document.getElementById('playerList').appendChild(li);
-}
-
-function updateLobbyList() {
-  document.getElementById('playerList').innerHTML = `<li>👤 ${myUsername} (Tu)</li>`;
+  // Não esconde o menu ainda, espera o utilizador clicar em "Entrar no Jogo"
+  document.getElementById('startGameBtn').classList.add('show');
 }
 
 function addRemotePlayer(id, position, username) {
@@ -484,6 +281,49 @@ function addRemotePlayer(id, position, username) {
   remotePlayers[id] = { mesh, nametag };
 }
 
+// ============ LOOP ============
+let lastTime = performance.now();
+function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  if (gameStarted) {
+    playerVel.y -= GRAVITY * dt;
+    playerVel.x *= 0.95;
+    playerVel.z *= 0.95;
+    playerPos.addScaledVector(playerVel, dt);
+    if (playerPos.y < 1.6) { playerPos.y = 1.6; playerVel.y = 0; }
+    camera.position.copy(playerPos);
+
+    if (socket && isMultiplayer && roomCode) {
+      socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
+    }
+  }
+
+  // Nametags
+  const vector = new THREE.Vector3();
+  Object.keys(remotePlayers).forEach(id => {
+    const rp = remotePlayers[id];
+    if (rp.mesh) {
+      vector.set(rp.mesh.position.x, rp.mesh.position.y + 0.6, rp.mesh.position.z);
+      vector.project(camera);
+      const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+      if (vector.z < 1) {
+        rp.nametag.style.display = 'flex';
+        rp.nametag.style.left = `${x}px`;
+        rp.nametag.style.top = `${y}px`;
+      } else {
+        rp.nametag.style.display = 'none';
+      }
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+
 // ============ EVENTOS UI ============
 document.getElementById('btnMultiplayer').onclick = () => {
   myUsername = document.getElementById('usernameInput').value.trim() || "Jogador" + Math.floor(Math.random() * 100);
@@ -493,86 +333,29 @@ document.getElementById('btnMultiplayer').onclick = () => {
 
 document.getElementById('btnSolo').onclick = () => {
   initHandTracking();
+  gameStarted = true;
   document.getElementById('menu').classList.add('hidden');
 };
 
 document.getElementById('copyBtn').onclick = () => {
-  const link = `${window.location.origin}?room=${roomCode}`;
+  const link = document.getElementById('shareLinkInput').value;
   navigator.clipboard.writeText(link).then(() => {
     document.getElementById('copyBtn').textContent = "✅ Copiado!";
-    setTimeout(() => document.getElementById('copyBtn').textContent = "📋 Copiar Link para Amigo", 2000);
+    setTimeout(() => document.getElementById('copyBtn').textContent = "📋 Copiar Link", 2000);
   });
+};
+
+document.getElementById('startGameBtn').onclick = () => {
+  gameStarted = true;
+  document.getElementById('menu').classList.add('hidden');
 };
 
 document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.add('show');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').classList.remove('show');
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
 
-// Link com sala (entrada direta)
-const urlParams = new URLSearchParams(window.location.search);
-const roomParam = urlParams.get('room');
-if (roomParam) {
-  roomCode = roomParam;
-  myUsername = prompt("O teu nome:", "Amigo") || "Amigo";
-  initHandTracking();
-  
-  const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
-  socket = io(serverUrl);
-  
-  socket.on('connect', () => {
-    socket.emit('joinRoom', { roomCode, username: myUsername });
-    document.getElementById('menu').classList.add('hidden');
-  });
-  socket.on('currentPlayers', (players) => {
-    Object.keys(players).forEach(id => { 
-      if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username); 
-    });
-  });
-  socket.on('newPlayer', (player) => {
-    addRemotePlayer(player.id, player.position, player.username);
-    if (isMicOn) createPeerConnection(player.id, true);
-  });
-  socket.on('playerMoved', (data) => {
-    if (remotePlayers[data.id]) remotePlayers[data.id].mesh.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2);
-  });
-  socket.on('playerMuteChanged', (data) => {
-    if (remotePlayers[data.id]) {
-      const icon = remotePlayers[data.id].nametag.querySelector('.mic-icon');
-      if (icon) icon.textContent = data.muted ? '🔇' : '🎙️';
-    }
-  });
-  socket.on('playerDisconnected', (id) => {
-    if (remotePlayers[id]) { scene.remove(remotePlayers[id].mesh); remotePlayers[id].nametag.remove(); delete remotePlayers[id]; }
-  });
-  // WebRTC events for direct link
-  socket.on('webrtc-offer', async (data) => {
-    const pc = createPeerConnection(data.sender, false);
-    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('webrtc-answer', { target: data.sender, answer });
-  });
-  socket.on('webrtc-answer', async (data) => {
-    const pc = peerConnections[data.sender];
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-  });
-  socket.on('webrtc-ice-candidate', async (data) => {
-    const pc = peerConnections[data.sender];
-    if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-  });
-  
-  isMultiplayer = true;
-}
-
-// Inicia o loop
-initHandTracking();
+// Inicia o loop de render
 loop();
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
 </body>
 </html>
