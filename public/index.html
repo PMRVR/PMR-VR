@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Gyro Fixed</title>
+<title>Blocky Tag - Voice & Physics</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -83,7 +84,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v4.3.0 - Gyro Fixed</div>
+<div id="version">v5.0.0 - TURN Server</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -138,6 +139,10 @@ let myUsername = "Jogador";
 let remotePlayers = {};
 let gameStarted = false;
 let myMuted = true;
+let localStream = null;
+
+// Guarda os WebRTC Peer Connections
+const peerConnections = {};
 
 let renderer;
 const settings = {
@@ -203,50 +208,29 @@ const GRAVITY = 20;
 const PUSH_MULTIPLIER = 400; 
 const MAX_SPEED = 15;
 
-// ============ GIROSCÓPIO (MATEMÁTICA OFICIAL THREE.JS) ============
-let baseAlpha = null;
-let baseBeta = null;
-let baseGamma = null;
-
+// Giroscópio
+let baseAlpha = null, baseBeta = null, baseGamma = null;
 window.addEventListener('deviceorientation', (e) => {
   if (e.alpha == null || e.beta == null || e.gamma == null) return;
-  
-  // Guarda a orientação inicial para o "reset"
-  if (baseAlpha === null) { 
-    baseAlpha = e.alpha; 
-    baseBeta = e.beta; 
-    baseGamma = e.gamma; 
-  }
-
+  if (baseAlpha === null) { baseAlpha = e.alpha; baseBeta = e.beta; baseGamma = e.gamma; }
   const r = Math.PI / 180;
-  // Ângulos relativos ao ponto de partida
-  const alpha = (e.alpha - baseAlpha) * r;
-  const beta = (e.beta - baseBeta) * r;
-  const gamma = (e.gamma - baseGamma) * r;
-
-  // ORIENTAÇÃO DO ECRÃ (Paisagem/Retrato)
-  let screenAngle = 0;
-  if (screen.orientation && typeof screen.orientation.angle === 'number') {
-    screenAngle = screen.orientation.angle;
-  } else if (typeof window.orientation === 'number') {
-    screenAngle = window.orientation;
+  let alpha = (e.alpha - baseAlpha) * r;
+  let beta = (e.beta - baseBeta) * r;
+  let gamma = (e.gamma - baseGamma) * r;
+  let screenAngle = window.screen.orientation ? window.screen.orientation.angle : (window.orientation || 0);
+  
+  if (screenAngle === 90 || screenAngle === -90) {
+    const temp = beta;
+    beta = gamma * (screenAngle === 90 ? 1 : -1);
+    gamma = -temp * (screenAngle === 90 ? 1 : -1);
   }
-
-  // 1. Cria o Euler com a ordem YXZ (padrão para giroscópios)
   const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
   const q1 = new THREE.Quaternion().setFromEuler(euler);
-
-  // 2. Rotação de -90° no X (câmara olha para a traseira, não para o topo)
   const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-
-  // 3. Compensação da rotação do ecrã
-  const q3 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -screenAngle * r);
-
-  // 4. Aplica tudo na ordem correta
-  camera.quaternion.copy(q3).multiply(q2).multiply(q1);
+  camera.quaternion.multiplyQuaternions(q2, q1);
 }, true);
 
-// ============ HAND TRACKING ============
+// Hand Tracking
 let handLandmarker = null;
 let lastVideoTime = -1;
 let prevLeftPos = new THREE.Vector3();
@@ -269,9 +253,7 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
-// ============ VOICE CHAT ============
-let localStream = null;
-let localAudioTrack = null;
+// ============ VOICE CHAT + WEBRTC (COM TURN SERVER) ============
 let audioContext = null;
 let audioAnalyser = null;
 let audioDataArray = null;
@@ -280,7 +262,6 @@ async function toggleMicrophone() {
   if (myMuted) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localAudioTrack = localStream.getAudioTracks()[0];
       myMuted = false;
       
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -298,13 +279,17 @@ async function toggleMicrophone() {
       
       if (socket) socket.emit('toggleMute', { roomCode, muted: false });
       
+      // Inicia as ligações WebRTC para todos os jogadores que já estão na sala
+      for (let id in remotePlayers) {
+        createPeerConnection(id, true);
+      }
+      
     } catch (err) {
       document.getElementById('voiceDot').style.background = '#ff4444';
       document.getElementById('voiceText').textContent = "Bloqueado";
     }
   } else {
     myMuted = true;
-    if (localAudioTrack) { localAudioTrack.stop(); localAudioTrack = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (audioContext) { audioContext.close(); audioContext = null; audioAnalyser = null; }
     
@@ -316,6 +301,52 @@ async function toggleMicrophone() {
     
     if (socket) socket.emit('toggleMute', { roomCode, muted: true });
   }
+}
+
+function createPeerConnection(targetId, isInitiator) {
+  if (peerConnections[targetId]) return peerConnections[targetId];
+  
+  // ⚠️ SUBSTITUI PELOS DADOS DO METERED
+  const TURN_USERNAME = "faca460dce2b47a95815c29b";
+  const TURN_CREDENTIAL = "kI3GUMJr8QgqdsvP";
+
+  const pc = new RTCPeerConnection({
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      { urls: 'turn:global.relay.metered.ca:80', username: TURN_USERNAME, credential: TURN_CREDENTIAL },
+      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: TURN_USERNAME, credential: TURN_CREDENTIAL },
+      { urls: 'turn:global.relay.metered.ca:443', username: TURN_USERNAME, credential: TURN_CREDENTIAL },
+      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: TURN_USERNAME, credential: TURN_CREDENTIAL }
+    ]
+  });
+  
+  peerConnections[targetId] = pc;
+
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
+
+  pc.ontrack = (event) => {
+    const audio = new Audio();
+    audio.srcObject = event.streams[0];
+    audio.play().catch(e => console.warn("Autoplay bloqueado:", e));
+  };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.emit('webrtc-ice-candidate', { target: targetId, candidate: event.candidate });
+    }
+  };
+
+  if (isInitiator) {
+    pc.createOffer().then(offer => {
+      pc.setLocalDescription(offer);
+      socket.emit('webrtc-offer', { target: targetId, offer });
+    });
+  }
+
+  return pc;
 }
 
 // ============ NAMETAG 3D ============
@@ -391,9 +422,7 @@ function connectToServer() {
   });
 
   socket.on('playerMuteChanged', (data) => {
-    if (remotePlayers[data.id]) {
-      drawNametag(data.id, !data.muted);
-    }
+    if (remotePlayers[data.id]) drawNametag(data.id, !data.muted);
   });
 
   socket.on('playerDisconnected', (id) => {
@@ -401,8 +430,28 @@ function connectToServer() {
       showToast(`${remotePlayers[id].username} saiu.`, 'user-minus');
       scene.remove(remotePlayers[id].group);
       delete remotePlayers[id];
+      if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; }
       updatePlayerList({}, true);
     }
+  });
+
+  // Eventos WebRTC
+  socket.on('webrtc-offer', async (data) => {
+    const pc = createPeerConnection(data.sender, false);
+    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('webrtc-answer', { target: data.sender, answer });
+  });
+
+  socket.on('webrtc-answer', async (data) => {
+    const pc = peerConnections[data.sender];
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+  });
+
+  socket.on('webrtc-ice-candidate', async (data) => {
+    const pc = peerConnections[data.sender];
+    if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
   });
 
   isMultiplayer = true;
@@ -530,15 +579,13 @@ function loop() {
 
 // ============ QUITAR DA ROOM ============
 function leaveRoom() {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+  if (socket) { socket.disconnect(); socket = null; }
   
   Object.keys(remotePlayers).forEach(id => {
     scene.remove(remotePlayers[id].group);
     delete remotePlayers[id];
   });
+  Object.keys(peerConnections).forEach(id => { peerConnections[id].close(); delete peerConnections[id]; });
 
   document.getElementById('playerList').innerHTML = '';
   document.getElementById('lobbyBox').classList.remove('show');
@@ -635,8 +682,26 @@ if (roomParam) {
       showToast(`${remotePlayers[id].username} saiu.`, 'user-minus');
       scene.remove(remotePlayers[id].group); 
       delete remotePlayers[id]; 
+      if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; }
       updatePlayerList({}, true);
     }
+  });
+  
+  // WebRTC
+  socket.on('webrtc-offer', async (data) => {
+    const pc = createPeerConnection(data.sender, false);
+    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('webrtc-answer', { target: data.sender, answer });
+  });
+  socket.on('webrtc-answer', async (data) => {
+    const pc = peerConnections[data.sender];
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+  });
+  socket.on('webrtc-ice-candidate', async (data) => {
+    const pc = peerConnections[data.sender];
+    if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
   });
   
   isMultiplayer = true;
