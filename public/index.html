@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Final Multiplayer</title>
+<title>Blocky Tag - Camera Fixed</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -11,7 +11,6 @@
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
   canvas { display: block; }
 
-  /* MENU */
   #menu { position: fixed; inset: 0; z-index: 1000; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #menu.hidden { display: none; }
   #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
@@ -19,33 +18,27 @@
   #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 8px; border-radius: 10px; cursor: pointer; width: 250px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
   #menu button:hover { border-color: #00ffaa; background: #333; }
   
-  /* LOBBY BOX */
   #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
   #lobbyBox.show { display: flex; }
   #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; }
   #roomCodeDisplay { font-family: monospace; font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 10px; }
   #shareLinkInput { width: 100%; padding: 10px; background: #000; border: 1px solid #333; border-radius: 8px; color: #888; font-size: 12px; margin-bottom: 10px; text-align: center; }
   #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; }
-  
   #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; max-height: 200px; overflow-y: auto; }
   #playerList li { padding: 8px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #222; }
   #playerList li:last-child { border-bottom: none; }
-  
   .voice-icon { width: 12px; height: 12px; border-radius: 50%; background: #555; transition: background 0.2s; flex-shrink: 0; }
   .voice-icon.talking { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
   .voice-icon.listening { background: #ffcc00; }
   .voice-icon.muted { background: #ff4444; }
-
   #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
   #startGameBtn.show { display: flex; }
 
-  /* HUD */
   #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; z-index: 50; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
   #settingsBtn { position: fixed; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.6); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; z-index: 100; }
 
-  /* GAVETA DE CONFIGURAÇÕES */
   #settingsPanel { position: fixed; top: 60px; right: 10px; z-index: 200; background: rgba(20,20,20,0.95); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
   #settingsPanel.show { display: flex; }
   #settingsContent { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -65,7 +58,6 @@
   #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
-  /* NOTIFICAÇÕES */
   #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 3000; pointer-events: none; align-items: center; }
   .toast { background: rgba(20, 20, 20, 0.9); border: 1px solid #00ffaa; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: slideUp 0.3s ease-out; display: flex; align-items: center; gap: 5px; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -91,7 +83,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v4.1.0</div>
+<div id="version">v4.2.0 - Camera Fixed</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -211,29 +203,49 @@ const GRAVITY = 20;
 const PUSH_MULTIPLIER = 400; 
 const MAX_SPEED = 15;
 
-// Giroscópio
-let baseAlpha = null, baseBeta = null, baseGamma = null;
+// ============ GIROSCÓPIO CORRIGIDO (EIXO Y / VERTICAL) ============
+let baseAlpha = null;
+let baseBeta = null;
+let baseGamma = null;
+
 window.addEventListener('deviceorientation', (e) => {
   if (e.alpha == null || e.beta == null || e.gamma == null) return;
-  if (baseAlpha === null) { baseAlpha = e.alpha; baseBeta = e.beta; baseGamma = e.gamma; }
+  
+  // Captura a orientação inicial para o "reset"
+  if (baseAlpha === null) { 
+    baseAlpha = e.alpha; 
+    baseBeta = e.beta; 
+    baseGamma = e.gamma; 
+  }
+
   const r = Math.PI / 180;
   let alpha = (e.alpha - baseAlpha) * r;
   let beta = (e.beta - baseBeta) * r;
   let gamma = (e.gamma - baseGamma) * r;
+
+  // Correção para modo paisagem (VR Box)
   let screenAngle = window.screen.orientation ? window.screen.orientation.angle : (window.orientation || 0);
   
   if (screenAngle === 90 || screenAngle === -90) {
+    // Inverte os eixos quando o telemóvel está deitado
     const temp = beta;
     beta = gamma * (screenAngle === 90 ? 1 : -1);
     gamma = -temp * (screenAngle === 90 ? 1 : -1);
   }
+
+  // Cria a rotação base do telemóvel
   const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
   const q1 = new THREE.Quaternion().setFromEuler(euler);
+
+  // Rotação de -90° no X para a câmara apontar para a FRENTE (traseira do telemóvel)
+  // E NÃO para cima (teto)
   const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+
+  // Aplica tudo
   camera.quaternion.multiplyQuaternions(q2, q1);
 }, true);
 
-// Hand Tracking
+// ============ HAND TRACKING ============
 let handLandmarker = null;
 let lastVideoTime = -1;
 let prevLeftPos = new THREE.Vector3();
@@ -256,7 +268,7 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
-// Voice Chat
+// ============ VOICE CHAT ============
 let localStream = null;
 let localAudioTrack = null;
 let audioContext = null;
@@ -305,7 +317,7 @@ async function toggleMicrophone() {
   }
 }
 
-// Nametag 3D
+// ============ NAMETAG 3D ============
 const nametagCanvases = {};
 function createNametag(id, text) {
   const canvas = document.createElement('canvas');
@@ -343,7 +355,7 @@ function drawNametag(id, isTalking) {
   if (canvas.texture) canvas.texture.needsUpdate = true;
 }
 
-// Multiplayer
+// ============ MULTIPLAYER ============
 function connectToServer() {
   roomCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
@@ -420,7 +432,7 @@ function addRemotePlayer(id, position, username) {
   updatePlayerList({}, true);
 }
 
-// Loop
+// ============ LOOP ============
 let lastTime = performance.now();
 function loop() {
   requestAnimationFrame(loop);
@@ -428,6 +440,7 @@ function loop() {
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
+  // Voice Analyzer
   if (!myMuted && audioAnalyser) {
     audioAnalyser.getByteFrequencyData(audioDataArray);
     let sum = 0;
@@ -457,6 +470,7 @@ function loop() {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
     }
 
+    // Hand Tracking
     if (handLandmarker && (now - lastHandDetectTime > (1000 / settings.fps))) {
       lastHandDetectTime = now;
       const video = document.getElementById('webcam');
@@ -520,21 +534,17 @@ function leaveRoom() {
     socket = null;
   }
   
-  // Limpa os jogadores remotos do mapa
   Object.keys(remotePlayers).forEach(id => {
     scene.remove(remotePlayers[id].group);
     delete remotePlayers[id];
   });
 
-  // Limpa a lista e o estado
   document.getElementById('playerList').innerHTML = '';
   document.getElementById('lobbyBox').classList.remove('show');
   document.getElementById('startGameBtn').classList.remove('show');
   
-  // Para o microfone
   if (!myMuted) toggleMicrophone();
 
-  // Volta ao Menu Inicial
   gameStarted = false;
   isMultiplayer = false;
   roomCode = null;
@@ -581,7 +591,6 @@ document.getElementById('closeSettings').onclick = () => document.getElementById
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
 document.getElementById('leaveRoomBtn').onclick = leaveRoom;
 
-// Link direto
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
 if (roomParam) {
