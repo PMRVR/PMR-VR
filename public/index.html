@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Camera Fixed</title>
+<title>Blocky Tag - Gyro Fixed</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -83,7 +83,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v4.2.0 - Camera Fixed</div>
+<div id="version">v4.3.0 - Gyro Fixed</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -203,7 +203,7 @@ const GRAVITY = 20;
 const PUSH_MULTIPLIER = 400; 
 const MAX_SPEED = 15;
 
-// ============ GIROSCÓPIO CORRIGIDO (EIXO Y / VERTICAL) ============
+// ============ GIROSCÓPIO (MATEMÁTICA OFICIAL THREE.JS) ============
 let baseAlpha = null;
 let baseBeta = null;
 let baseGamma = null;
@@ -211,7 +211,7 @@ let baseGamma = null;
 window.addEventListener('deviceorientation', (e) => {
   if (e.alpha == null || e.beta == null || e.gamma == null) return;
   
-  // Captura a orientação inicial para o "reset"
+  // Guarda a orientação inicial para o "reset"
   if (baseAlpha === null) { 
     baseAlpha = e.alpha; 
     baseBeta = e.beta; 
@@ -219,30 +219,31 @@ window.addEventListener('deviceorientation', (e) => {
   }
 
   const r = Math.PI / 180;
-  let alpha = (e.alpha - baseAlpha) * r;
-  let beta = (e.beta - baseBeta) * r;
-  let gamma = (e.gamma - baseGamma) * r;
+  // Ângulos relativos ao ponto de partida
+  const alpha = (e.alpha - baseAlpha) * r;
+  const beta = (e.beta - baseBeta) * r;
+  const gamma = (e.gamma - baseGamma) * r;
 
-  // Correção para modo paisagem (VR Box)
-  let screenAngle = window.screen.orientation ? window.screen.orientation.angle : (window.orientation || 0);
-  
-  if (screenAngle === 90 || screenAngle === -90) {
-    // Inverte os eixos quando o telemóvel está deitado
-    const temp = beta;
-    beta = gamma * (screenAngle === 90 ? 1 : -1);
-    gamma = -temp * (screenAngle === 90 ? 1 : -1);
+  // ORIENTAÇÃO DO ECRÃ (Paisagem/Retrato)
+  let screenAngle = 0;
+  if (screen.orientation && typeof screen.orientation.angle === 'number') {
+    screenAngle = screen.orientation.angle;
+  } else if (typeof window.orientation === 'number') {
+    screenAngle = window.orientation;
   }
 
-  // Cria a rotação base do telemóvel
+  // 1. Cria o Euler com a ordem YXZ (padrão para giroscópios)
   const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
   const q1 = new THREE.Quaternion().setFromEuler(euler);
 
-  // Rotação de -90° no X para a câmara apontar para a FRENTE (traseira do telemóvel)
-  // E NÃO para cima (teto)
+  // 2. Rotação de -90° no X (câmara olha para a traseira, não para o topo)
   const q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 
-  // Aplica tudo
-  camera.quaternion.multiplyQuaternions(q2, q1);
+  // 3. Compensação da rotação do ecrã
+  const q3 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -screenAngle * r);
+
+  // 4. Aplica tudo na ordem correta
+  camera.quaternion.copy(q3).multiply(q2).multiply(q1);
 }, true);
 
 // ============ HAND TRACKING ============
