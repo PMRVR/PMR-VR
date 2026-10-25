@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Voice & Multiplayer</title>
+<title>Blocky Tag - Final Multiplayer</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -31,8 +31,7 @@
   #playerList li { padding: 8px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #222; }
   #playerList li:last-child { border-bottom: none; }
   
-  /* INDICADOR DE VOZ NA LISTA */
-  .voice-icon { width: 14px; height: 14px; border-radius: 50%; background: #555; transition: background 0.2s; flex-shrink: 0; }
+  .voice-icon { width: 12px; height: 12px; border-radius: 50%; background: #555; transition: background 0.2s; flex-shrink: 0; }
   .voice-icon.talking { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
   .voice-icon.listening { background: #ffcc00; }
   .voice-icon.muted { background: #ff4444; }
@@ -63,6 +62,7 @@
   .active-voice { background: #00ffaa !important; color: #000 !important; border-color: #00ffaa !important; }
   
   #toggleMicBtn { width: 100%; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
   /* NOTIFICAÇÕES */
@@ -91,7 +91,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v4.0.0 - Voice States</div>
+<div id="version">v4.1.0</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -114,6 +114,7 @@
         <span id="voiceText">Desligado</span>
       </div>
       <button id="toggleMicBtn"><i data-lucide="mic-off"></i> Ativar</button>
+      <button id="leaveRoomBtn"><i data-lucide="log-out"></i> Sair da Sala</button>
     </div>
   </div>
   <button id="closeSettings"><i data-lucide="x"></i> Fechar</button>
@@ -203,14 +204,14 @@ const rightHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ colo
 scene.add(leftHandMesh);
 scene.add(rightHandMesh);
 
-// ============ FÍSICA ============
+// Física
 const playerPos = new THREE.Vector3(0, 1.6, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
 const GRAVITY = 20;
 const PUSH_MULTIPLIER = 400; 
 const MAX_SPEED = 15;
 
-// ============ GIROSCÓPIO ============
+// Giroscópio
 let baseAlpha = null, baseBeta = null, baseGamma = null;
 window.addEventListener('deviceorientation', (e) => {
   if (e.alpha == null || e.beta == null || e.gamma == null) return;
@@ -232,7 +233,7 @@ window.addEventListener('deviceorientation', (e) => {
   camera.quaternion.multiplyQuaternions(q2, q1);
 }, true);
 
-// ============ HAND TRACKING ============
+// Hand Tracking
 let handLandmarker = null;
 let lastVideoTime = -1;
 let prevLeftPos = new THREE.Vector3();
@@ -255,7 +256,7 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
-// ============ VOICE CHAT ============
+// Voice Chat
 let localStream = null;
 let localAudioTrack = null;
 let audioContext = null;
@@ -269,7 +270,6 @@ async function toggleMicrophone() {
       localAudioTrack = localStream.getAudioTracks()[0];
       myMuted = false;
       
-      // Configura o Analisador de Áudio para detetar se estás a falar
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContext.createMediaStreamSource(localStream);
       audioAnalyser = audioContext.createAnalyser();
@@ -305,15 +305,13 @@ async function toggleMicrophone() {
   }
 }
 
-// ============ NAMETAG 3D COM ÁUDIO ============
-const nametagCanvases = {}; // Guarda os canvas para atualizar as cores sem recriar
-
+// Nametag 3D
+const nametagCanvases = {};
 function createNametag(id, text) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = 256;
   canvas.height = 64;
-  
   nametagCanvases[id] = { canvas, ctx, text };
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -321,8 +319,6 @@ function createNametag(id, text) {
   const sprite = new THREE.Sprite(material);
   sprite.scale.set(1.5, 0.375, 1);
   sprite.position.y = 0.6;
-  
-  // Desenha a versão inicial
   drawNametag(id, false);
   return sprite;
 }
@@ -331,31 +327,23 @@ function drawNametag(id, isTalking) {
   const data = nametagCanvases[id];
   if (!data) return;
   const { canvas, ctx, text } = data;
-  
   ctx.clearRect(0, 0, 256, 64);
-  
-  // Fundo
   ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
   ctx.roundRect(0, 0, 256, 64, 20);
   ctx.fill();
-
-  // Ícone de áudio
   ctx.beginPath();
   ctx.arc(30, 32, 8, 0, Math.PI * 2);
   ctx.fillStyle = isTalking ? '#00ffaa' : '#ff4444';
   ctx.fill();
-
-  // Texto
   ctx.font = 'bold 24px Inter, sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 50, 32);
-  
-  data.canvas.texture && data.canvas.texture.needsUpdate = true;
+  if (canvas.texture) canvas.texture.needsUpdate = true;
 }
 
-// ============ MULTIPLAYER ============
+// Multiplayer
 function connectToServer() {
   roomCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
@@ -391,7 +379,6 @@ function connectToServer() {
 
   socket.on('playerMuteChanged', (data) => {
     if (remotePlayers[data.id]) {
-      // Atualiza o estado visual no nametag 3D
       drawNametag(data.id, !data.muted);
     }
   });
@@ -401,7 +388,7 @@ function connectToServer() {
       showToast(`${remotePlayers[id].username} saiu.`, 'user-minus');
       scene.remove(remotePlayers[id].group);
       delete remotePlayers[id];
-      updatePlayerList({}, false); // Vai re-renderizar baseado no estado atual
+      updatePlayerList({}, true);
     }
   });
 
@@ -412,7 +399,6 @@ function connectToServer() {
 function updatePlayerList(players, isNew) {
   const list = document.getElementById('playerList');
   if (isNew) {
-    // Atualiza a lista de forma simples
     list.innerHTML = `<li><span class="voice-icon" id="my-voice-indicator"></span> ${myUsername} (Tu)</li>`;
     Object.keys(remotePlayers).forEach(id => {
       list.innerHTML += `<li><span class="voice-icon" id="voice-${id}"></span> ${remotePlayers[id].username}</li>`;
@@ -422,25 +408,19 @@ function updatePlayerList(players, isNew) {
 
 function addRemotePlayer(id, position, username) {
   const group = new THREE.Group();
-  
-  // Cubo
   const geo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
   const mat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
   const mesh = new THREE.Mesh(geo, mat);
   group.add(mesh);
-
-  // Nametag 3D
   const tag = createNametag(id, username);
   group.add(tag);
-
   group.position.set(position.x, position.y, position.z);
   scene.add(group);
-
   remotePlayers[id] = { group, username };
-  updatePlayerList({}, true); // Re-renderiza a lista para incluir o novo jogador
+  updatePlayerList({}, true);
 }
 
-// ============ LOOP ============
+// Loop
 let lastTime = performance.now();
 function loop() {
   requestAnimationFrame(loop);
@@ -448,18 +428,15 @@ function loop() {
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
-  // Analisar se o jogador local está a falar (para o ícone no menu)
   if (!myMuted && audioAnalyser) {
     audioAnalyser.getByteFrequencyData(audioDataArray);
     let sum = 0;
     for (let i = 0; i < audioDataArray.length; i++) sum += audioDataArray[i];
     const volume = sum / audioDataArray.length;
-    
     const micIcon = document.getElementById('my-voice-indicator');
     if (micIcon) {
       if (volume > 20) {
         micIcon.className = 'voice-icon talking';
-        // Enviar estado "A falar" para o servidor (opcional, mas melhora a resposta)
         if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: true });
       } else {
         micIcon.className = 'voice-icon listening';
@@ -469,12 +446,10 @@ function loop() {
   }
 
   if (gameStarted) {
-    // Física
     playerVel.y -= GRAVITY * dt;
     playerVel.x *= 0.95;
     playerVel.z *= 0.95;
     playerPos.addScaledVector(playerVel, dt);
-    
     if (playerPos.y < 1.6) { playerPos.y = 1.6; playerVel.y = 0; }
     camera.position.copy(playerPos);
 
@@ -482,7 +457,6 @@ function loop() {
       socket.emit('updatePosition', { roomCode, position: { x: playerPos.x, y: playerPos.y, z: playerPos.z } });
     }
 
-    // Hand Tracking
     if (handLandmarker && (now - lastHandDetectTime > (1000 / settings.fps))) {
       lastHandDetectTime = now;
       const video = document.getElementById('webcam');
@@ -539,6 +513,36 @@ function loop() {
   renderer.render(scene, camera);
 }
 
+// ============ QUITAR DA ROOM ============
+function leaveRoom() {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  
+  // Limpa os jogadores remotos do mapa
+  Object.keys(remotePlayers).forEach(id => {
+    scene.remove(remotePlayers[id].group);
+    delete remotePlayers[id];
+  });
+
+  // Limpa a lista e o estado
+  document.getElementById('playerList').innerHTML = '';
+  document.getElementById('lobbyBox').classList.remove('show');
+  document.getElementById('startGameBtn').classList.remove('show');
+  
+  // Para o microfone
+  if (!myMuted) toggleMicrophone();
+
+  // Volta ao Menu Inicial
+  gameStarted = false;
+  isMultiplayer = false;
+  roomCode = null;
+  document.getElementById('menu').classList.remove('hidden');
+  document.getElementById('settingsPanel').classList.remove('show');
+  showToast("Saíste da sala.", 'log-out');
+}
+
 // ============ UI EVENTOS ============
 document.getElementById('btnMultiplayer').onclick = () => {
   myUsername = document.getElementById('usernameInput').value.trim() || "Jogador";
@@ -575,6 +579,7 @@ document.getElementById('startGameBtn').onclick = () => {
 document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('show');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').classList.remove('show');
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
+document.getElementById('leaveRoomBtn').onclick = leaveRoom;
 
 // Link direto
 const urlParams = new URLSearchParams(window.location.search);
