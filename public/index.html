@@ -3,49 +3,61 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag</title>
+<title>Blocky Tag - Faces & Accessories</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
+  
   canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: block; }
-  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud, #version { z-index: 100; }
-  #menu { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud, #version, #landscapeBtn { z-index: 100; }
+
+  #menu { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
   #menu.hidden { display: none; }
   #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
-  #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 20px; width: 250px; }
-  #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 8px; border-radius: 10px; cursor: pointer; width: 250px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  
+  #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 15px; width: 250px; }
+  #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 6px; border-radius: 10px; cursor: pointer; width: 250px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
   #menu button:hover { border-color: #00ffaa; background: #333; }
+  
+  #landscapeBtn { background: #ffaa00 !important; color: #000 !important; border-color: #ffaa00 !important; font-size: 15px !important; }
+  #accessoryBtn { background: #4488ff !important; border-color: #4488ff !important; font-size: 15px !important; }
+  
   #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
   #lobbyBox.show { display: flex; }
   #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; }
   #roomCodeDisplay { font-family: monospace; font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 10px; }
   #shareLinkInput { width: 100%; padding: 10px; background: #000; border: 1px solid #333; border-radius: 8px; color: #888; font-size: 12px; margin-bottom: 10px; text-align: center; }
   #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  
   #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; max-height: 200px; overflow-y: auto; }
   #playerList li { padding: 8px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #222; }
   .voice-icon { width: 12px; height: 12px; border-radius: 50%; background: #555; }
   .voice-icon.talking { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
-  .voice-icon.listening { background: #ffcc00; }
+  
   #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
   #startGameBtn.show { display: flex; }
+  
   #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
   #settingsBtn { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; pointer-events: none; }
+  
   #settingsPanel { position: fixed; top: 60px; right: 10px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
   #settingsPanel.show { display: flex; }
   #settingsContent { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
   .setting-group h3 { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
-  .setting-options { display: flex; gap: 4px; }
-  .setting-options button { background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; flex: 1; }
+  .setting-options { display: flex; gap: 4px; flex-wrap: wrap; }
+  .setting-options button { background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; flex: 1; min-width: 45px; }
   .setting-options button.active { background: #00ffaa; color: #000; border-color: #00ffaa; font-weight: bold; }
+  
   #voiceStatus { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 10px; }
   #voiceDot { width: 10px; height: 10px; border-radius: 50%; background: #ff4444; }
   .active-voice { background: #00ffaa !important; color: #000 !important; border-color: #00ffaa !important; }
   #toggleMicBtn { width: 100%; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
   #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  
   #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: none; align-items: center; }
   .toast { background: rgba(20, 20, 20, 0.9); border: 1px solid #00ffaa; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; animation: slideUp 0.3s ease-out; display: flex; align-items: center; gap: 5px; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -60,6 +72,10 @@
   <input type="text" id="usernameInput" placeholder="O teu nome..." maxlength="15" />
   <button id="btnMultiplayer">Criar Sala</button>
   <button id="btnSolo">Jogar Solo</button>
+  
+  <button id="landscapeBtn">📱 Forçar Modo Paisagem</button>
+  <button id="accessoryBtn">🎩 Acessórios</button>
+
   <div id="lobbyBox">
     <h3>Link para Amigo</h3>
     <div id="roomCodeDisplay"></div>
@@ -72,7 +88,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn">⚙️</button>
-<div id="version">v9.0.0</div>
+<div id="version">v10.0.0</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -80,6 +96,16 @@
       <h3>Gráficos</h3>
       <div class="setting-options" id="resOptions">
         <button data-res="potato">P</button><button data-res="low">L</button><button data-res="medium" class="active">M</button><button data-res="high">H</button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <h3>Acessório</h3>
+      <div class="setting-options" id="accOptions">
+        <button data-acc="none" class="active">Nenhum</button>
+        <button data-acc="hat">Chapéu</button>
+        <button data-acc="bighead">Cabeça</button>
+        <button data-acc="nutella">Nutella</button>
+        <button data-acc="cone">Cone</button>
       </div>
     </div>
     <div class="setting-group">
@@ -118,7 +144,7 @@ import { CONFIG } from './configs.js';
 let socket = null, roomCode = null, isMultiplayer = false, myUsername = "Jogador", remotePlayers = {}, gameStarted = false, myMuted = true, localStream = null;
 const peerConnections = {};
 let renderer;
-const settings = { res: localStorage.getItem('pmr_res') || 'medium', fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10) };
+const settings = { res: localStorage.getItem('pmr_res') || 'medium', fps: parseInt(localStorage.getItem('pmr_fps') || '20', 10), acc: 'none' };
 
 function showToast(message) {
   const container = document.getElementById('toastContainer');
@@ -129,6 +155,7 @@ function showToast(message) {
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
+// ============ THREE.JS SETUP ============
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x555555);
 scene.fog = new THREE.Fog(0x555555, 15, 60);
@@ -148,6 +175,7 @@ createRenderer();
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 
+// ============ MUNDO ============
 const worldGroup = new THREE.Group();
 scene.add(worldGroup);
 const colliders = [];
@@ -173,15 +201,72 @@ for (let i = 0; i < 5; i++) {
   colliders.push(new THREE.Box3().setFromObject(step));
 }
 
+// ============ CRIAÇÃO DO CORPO E FACE ============
+function createFaceTexture(isTalking) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#888888'; // Fundo cinza do cubo
+  ctx.fillRect(0, 0, 256, 128);
+
+  ctx.fillStyle = '#111'; // Cor dos olhos
+  ctx.strokeStyle = '#111';
+  
+  if (isTalking) {
+    // Olhos: ・ ・
+    ctx.beginPath(); ctx.arc(80, 50, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(176, 50, 8, 0, Math.PI * 2); ctx.fill();
+    // Boca: ∀
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(100, 80);
+    ctx.lineTo(128, 110);
+    ctx.lineTo(156, 80);
+    ctx.stroke();
+  } else {
+    // Olhos: | |
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(75, 35); ctx.lineTo(85, 65); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(181, 35); ctx.lineTo(171, 65); ctx.stroke();
+    // Boca: ---
+    ctx.beginPath(); ctx.moveTo(100, 90); ctx.lineTo(156, 90); ctx.stroke();
+  }
+  return new THREE.CanvasTexture(canvas);
+}
+
 const myBodyGroup = new THREE.Group();
-const bigHead = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
-bigHead.position.y = 0.4; 
+
+// Cabeça
+const headGeo = new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE);
+const headMat = new THREE.MeshBasicMaterial({ map: createFaceTexture(false) });
+const bigHead = new THREE.Mesh(headGeo, headMat);
+bigHead.position.y = 0.4;
 myBodyGroup.add(bigHead);
+
+// Barriga
 const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
-belly.position.y = -0.4; 
+belly.position.y = -0.4;
 myBodyGroup.add(belly);
+
+// Acessórios
+const hatMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+hatMesh.position.y = 0.9; hatMesh.visible = false; myBodyGroup.add(hatMesh);
+
+const coneMesh = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 16), new THREE.MeshBasicMaterial({ color: 0xff5500 }));
+coneMesh.position.y = 1.0; coneMesh.visible = false; myBodyGroup.add(coneMesh);
+
+const nutellaMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 16), new THREE.MeshBasicMaterial({ color: 0x880000 }));
+nutellaMesh.position.y = 0.9; nutellaMesh.visible = false; myBodyGroup.add(nutellaMesh);
+const nutellaLid = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+nutellaLid.position.y = 1.07; nutellaLid.visible = false; myBodyGroup.add(nutellaLid);
+
+const bigheadMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+bigheadMesh.position.y = 0.9; bigheadMesh.visible = false; myBodyGroup.add(bigheadMesh);
+
 scene.add(myBodyGroup);
 
+// Mãos
 const handGeo = new THREE.BoxGeometry(CONFIG.HAND_SIZE, CONFIG.HAND_SIZE, CONFIG.HAND_SIZE);
 const leftHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
 const rightHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
@@ -196,6 +281,7 @@ const playerPos = new THREE.Vector3(0, CONFIG.PLAYER_HEIGHT, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
 let isGrabbing = false, isGrounded = false;
 
+// ============ GIROSCÓPIO ============
 window.addEventListener("deviceorientation", (event) => {
   if (event.alpha == null || event.beta == null) return;
   camera.rotation.y = THREE.MathUtils.degToRad(event.alpha);
@@ -203,6 +289,7 @@ window.addEventListener("deviceorientation", (event) => {
   camera.rotation.order = 'YXZ';
 }, true);
 
+// ============ HAND TRACKING ============
 let handLandmarker = null, lastVideoTime = -1, prevLeftPos = new THREE.Vector3(), prevRightPos = new THREE.Vector3(), lastHandDetectTime = 0;
 
 async function initHandTracking() {
@@ -221,6 +308,7 @@ async function initHandTracking() {
   } catch (e) { console.error(e); }
 }
 
+// ============ VOICE CHAT ============
 let audioContext = null, audioAnalyser = null, audioDataArray = null;
 
 async function toggleMicrophone() {
@@ -248,6 +336,8 @@ async function toggleMicrophone() {
     document.getElementById('toggleMicBtn').classList.remove('active-voice');
     document.getElementById('voiceDot').style.background = '#ff4444';
     document.getElementById('voiceText').textContent = "Silenciado";
+    bigHead.material.map = createFaceTexture(false);
+    bigHead.material.needsUpdate = true;
     if (socket) socket.emit('toggleMute', { roomCode, muted: true });
   }
 }
@@ -269,26 +359,7 @@ function createPeerConnection(targetId, isInitiator) {
   return pc;
 }
 
-const nametagCanvases = {};
-
-function createNametag(id, text) {
-  const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 256; canvas.height = 64;
-  nametagCanvases[id] = { canvas, ctx, text };
-  const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture, depthTest: false });
-  const sprite = new THREE.Sprite(material); sprite.scale.set(1.5, 0.375, 1); sprite.position.y = 0.6;
-  drawNametag(id, false); return sprite;
-}
-
-function drawNametag(id, isTalking) {
-  const data = nametagCanvases[id]; if (!data) return;
-  const { canvas, ctx, text } = data;
-  ctx.clearRect(0, 0, 256, 64); ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; ctx.roundRect(0, 0, 256, 64, 20); ctx.fill();
-  ctx.beginPath(); ctx.arc(30, 32, 8, 0, Math.PI * 2); ctx.fillStyle = isTalking ? '#00ffaa' : '#ff4444'; ctx.fill();
-  ctx.font = 'bold 24px Inter, sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, 50, 32);
-  if (canvas.texture) canvas.texture.needsUpdate = true;
-}
-
+// ============ MULTIPLAYER ============
 function connectToServer() {
   roomCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
@@ -305,7 +376,7 @@ function connectToServer() {
   socket.on('newPlayer', (player) => { updatePlayerList({ [player.id]: player }, true); addRemotePlayer(player.id, player.position, player.username, player.rotY); showToast(`${player.username} entrou!`); });
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
   socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.rotation.y = data.rotY; });
-  socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) drawNametag(data.id, !data.muted); });
+  socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) { remotePlayers[data.id].isTalking = !data.muted; if (remotePlayers[data.id].headMat) remotePlayers[data.id].headMat.map = createFaceTexture(!data.muted); remotePlayers[data.id].headMat.needsUpdate = true; } });
   socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList({}, true); } });
   socket.on('webrtc-offer', async (data) => { const pc = createPeerConnection(data.sender, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('webrtc-answer', { target: data.sender, answer }); });
   socket.on('webrtc-answer', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); });
@@ -313,18 +384,17 @@ function connectToServer() {
   isMultiplayer = true; document.getElementById('startGameBtn').classList.add('show');
 }
 
-function updatePlayerList(players, isNew) {
+function updatePlayerList() {
   const list = document.getElementById('playerList');
-  if (isNew) {
-    list.innerHTML = `<li><span class="voice-icon" id="my-voice-indicator"></span> ${myUsername} (Tu)</li>`;
-    Object.keys(remotePlayers).forEach(id => { list.innerHTML += `<li><span class="voice-icon" id="voice-${id}"></span> ${remotePlayers[id].username}</li>`; });
-  }
+  list.innerHTML = `<li><span class="voice-icon" id="my-voice-indicator"></span> ${myUsername} (Tu)</li>`;
+  Object.keys(remotePlayers).forEach(id => { list.innerHTML += `<li><span class="voice-icon"></span> ${remotePlayers[id].username}</li>`; });
 }
 
 function addRemotePlayer(id, position, username, rotY) {
   const group = new THREE.Group();
   
-  const head = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+  const headMat = new THREE.MeshBasicMaterial({ map: createFaceTexture(false) });
+  const head = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE, CONFIG.HEAD_SIZE), headMat);
   head.position.y = 0.4; 
   group.add(head);
 
@@ -332,15 +402,15 @@ function addRemotePlayer(id, position, username, rotY) {
   belly.position.y = -0.4; 
   group.add(belly);
 
-  const tag = createNametag(id, username); group.add(tag);
   group.position.set(position.x, position.y, position.z); 
   group.rotation.y = rotY || 0;
   scene.add(group);
   
-  remotePlayers[id] = { group, username }; 
-  updatePlayerList({}, true);
+  remotePlayers[id] = { group, username, headMat, isTalking: false }; 
+  updatePlayerList();
 }
 
+// ============ LOOP FÍSICA ============
 let lastTime = performance.now();
 
 function loop() {
@@ -349,12 +419,27 @@ function loop() {
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
+  // Atualizar Face quando fala
   if (!myMuted && audioAnalyser) {
     audioAnalyser.getByteFrequencyData(audioDataArray);
     let sum = 0; for (let i = 0; i < audioDataArray.length; i++) sum += audioDataArray[i];
     const volume = sum / audioDataArray.length;
+    
+    const isTalkingNow = volume > 20;
+    if (!bigHead.userData.isTalking && isTalkingNow) {
+      bigHead.material.map = createFaceTexture(true);
+      bigHead.material.needsUpdate = true;
+      bigHead.userData.isTalking = true;
+      if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: true });
+    } else if (bigHead.userData.isTalking && !isTalkingNow) {
+      bigHead.material.map = createFaceTexture(false);
+      bigHead.material.needsUpdate = true;
+      bigHead.userData.isTalking = false;
+      if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: false });
+    }
+    
     const micIcon = document.getElementById('my-voice-indicator');
-    if (micIcon) { if (volume > 20) { micIcon.className = 'voice-icon talking'; if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: true }); } else { micIcon.className = 'voice-icon listening'; if (socket) socket.emit('toggleMute', { roomCode, muted: false, talking: false }); } }
+    if (micIcon) { if (isTalkingNow) micIcon.className = 'voice-icon talking'; else micIcon.className = 'voice-icon'; }
   }
 
   if (gameStarted) {
@@ -368,19 +453,10 @@ function loop() {
     });
     isGrabbing = touching;
 
-    if (!isGrabbing) {
-      playerVel.y -= CONFIG.GRAVITY * dt;
-    } else {
-      playerVel.y = 0; 
-    }
+    if (!isGrabbing) { playerVel.y -= CONFIG.GRAVITY * dt; } else { playerVel.y = 0; }
 
-    if (isGrounded) {
-      playerVel.x *= CONFIG.GROUND_FRICTION;
-      playerVel.z *= CONFIG.GROUND_FRICTION;
-    } else {
-      playerVel.x *= CONFIG.AIR_DRAG;
-      playerVel.z *= CONFIG.AIR_DRAG;
-    }
+    if (isGrounded) { playerVel.x *= CONFIG.GROUND_FRICTION; playerVel.z *= CONFIG.GROUND_FRICTION; } 
+    else { playerVel.x *= CONFIG.AIR_DRAG; playerVel.z *= CONFIG.AIR_DRAG; }
 
     const prevPos = playerPos.clone();
     playerPos.addScaledVector(playerVel, dt);
@@ -390,26 +466,18 @@ function loop() {
     for (let i = 0; i < colliders.length; i++) {
       if (playerBox.intersectsBox(colliders[i])) {
         colliding = true;
-        if (playerPos.y > prevPos.y) { 
-          playerPos.y = prevPos.y; playerVel.y = 0;
-        } else if (playerPos.y < prevPos.y) { 
-          if (colliders[i].max.y < 0.5) {
-            playerPos.y = CONFIG.PLAYER_HEIGHT; playerVel.y = 0; isGrounded = true;
-          } else {
-            playerPos.y = colliders[i].max.y + CONFIG.PLAYER_HEIGHT; playerVel.y = 0; isGrounded = true;
-          }
+        if (playerPos.y > prevPos.y) { playerPos.y = prevPos.y; playerVel.y = 0; } 
+        else if (playerPos.y < prevPos.y) { 
+          if (colliders[i].max.y < 0.5) { playerPos.y = CONFIG.PLAYER_HEIGHT; playerVel.y = 0; isGrounded = true; } 
+          else { playerPos.y = colliders[i].max.y + CONFIG.PLAYER_HEIGHT; playerVel.y = 0; isGrounded = true; }
         }
-        if (Math.abs(playerPos.x - prevPos.x) > Math.abs(playerPos.z - prevPos.z)) {
-          playerPos.x = prevPos.x; playerVel.x = 0;
-        } else {
-          playerPos.z = prevPos.z; playerVel.z = 0;
-        }
+        if (Math.abs(playerPos.x - prevPos.x) > Math.abs(playerPos.z - prevPos.z)) { playerPos.x = prevPos.x; playerVel.x = 0; } 
+        else { playerPos.z = prevPos.z; playerVel.z = 0; }
       }
     }
     if (!colliding) isGrounded = false;
 
     camera.position.copy(playerPos);
-    
     myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
     myBodyGroup.rotation.y = camera.rotation.y; 
 
@@ -468,19 +536,14 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-function leaveRoom() {
-  if (socket) { socket.disconnect(); socket = null; }
-  Object.keys(remotePlayers).forEach(id => { scene.remove(remotePlayers[id].group); delete remotePlayers[id]; });
-  Object.keys(peerConnections).forEach(id => { peerConnections[id].close(); delete peerConnections[id]; });
-  document.getElementById('playerList').innerHTML = '';
-  document.getElementById('lobbyBox').classList.remove('show');
-  document.getElementById('startGameBtn').classList.remove('show');
-  if (!myMuted) toggleMicrophone();
-  gameStarted = false; isMultiplayer = false; roomCode = null;
-  document.getElementById('menu').classList.remove('hidden');
-  document.getElementById('settingsPanel').classList.remove('show');
-  showToast("Saíste da sala.");
-}
+// ============ UI LOGIC ============
+document.getElementById('landscapeBtn').onclick = async () => {
+  try {
+    if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+    if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+    showToast("Modo paisagem forçado!");
+  } catch (err) { showToast("O teu browser não permite forçar. Roda manualmente."); }
+};
 
 document.getElementById('btnMultiplayer').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); connectToServer(); };
 document.getElementById('btnSolo').onclick = () => { myUsername = document.getElementById('usernameInput').value.trim() || "Jogador"; localStorage.setItem('pmr_username', myUsername); initHandTracking(); gameStarted = true; document.getElementById('menu').classList.add('hidden'); };
@@ -489,7 +552,46 @@ document.getElementById('startGameBtn').onclick = () => { gameStarted = true; do
 document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('show');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').classList.remove('show');
 document.getElementById('toggleMicBtn').onclick = toggleMicrophone;
-document.getElementById('leaveRoomBtn').onclick = leaveRoom;
+
+document.querySelectorAll('#resOptions button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#resOptions button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.res = btn.dataset.res;
+    localStorage.setItem('pmr_res', settings.res);
+    createRenderer();
+  };
+});
+
+document.querySelectorAll('#fpsOptions button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#fpsOptions button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.fps = parseInt(btn.dataset.fps, 10);
+    localStorage.setItem('pmr_fps', settings.fps);
+  };
+});
+
+document.querySelectorAll('#accOptions button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#accOptions button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.acc = btn.dataset.acc;
+    
+    hatMesh.visible = false;
+    coneMesh.visible = false;
+    nutellaMesh.visible = false;
+    nutellaLid.visible = false;
+    bigheadMesh.visible = false;
+    
+    if (settings.acc === 'hat') hatMesh.visible = true;
+    if (settings.acc === 'cone') coneMesh.visible = true;
+    if (settings.acc === 'nutella') { nutellaMesh.visible = true; nutellaLid.visible = true; }
+    if (settings.acc === 'bighead') bigheadMesh.visible = true;
+  };
+});
+
+document.getElementById('accessoryBtn').onclick = () => document.getElementById('settingsPanel').classList.add('show');
 
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
@@ -498,13 +600,13 @@ if (roomParam) {
   initHandTracking();
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
   socket = io(serverUrl);
-  socket.on('connect', () => { socket.emit('joinRoom', { roomCode, username: myUsername }); document.getElementById('menu').classList.add('hidden'); gameStarted = true; updatePlayerList({}, true); });
-  socket.on('currentPlayers', (players) => { updatePlayerList(players, true); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY); }); });
+  socket.on('connect', () => { socket.emit('joinRoom', { roomCode, username: myUsername }); document.getElementById('menu').classList.add('hidden'); gameStarted = true; updatePlayerList(); });
+  socket.on('currentPlayers', (players) => { updatePlayerList(); Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id].position, players[id].username, players[id].rotY); }); });
   socket.on('newPlayer', (player) => { addRemotePlayer(player.id, player.position, player.username, player.rotY); showToast(`${player.username} entrou!`); });
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
   socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.rotation.y = data.rotY; });
-  socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) drawNametag(data.id, !data.muted); });
-  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList({}, true); } });
+  socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) { remotePlayers[data.id].isTalking = !data.muted; if (remotePlayers[data.id].headMat) remotePlayers[data.id].headMat.map = createFaceTexture(!data.muted); remotePlayers[data.id].headMat.needsUpdate = true; } });
+  socket.on('playerDisconnected', (id) => { if (remotePlayers[id]) { showToast(`${remotePlayers[id].username} saiu.`); scene.remove(remotePlayers[id].group); delete remotePlayers[id]; if (peerConnections[id]) { peerConnections[id].close(); delete peerConnections[id]; } updatePlayerList(); } });
   socket.on('webrtc-offer', async (data) => { const pc = createPeerConnection(data.sender, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('webrtc-answer', { target: data.sender, answer }); });
   socket.on('webrtc-answer', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); });
   socket.on('webrtc-ice-candidate', async (data) => { const pc = peerConnections[data.sender]; if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); });
