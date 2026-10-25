@@ -18,11 +18,13 @@ io.on('connection', (socket) => {
     socket.join(roomCode);
     if (!rooms[roomCode]) rooms[roomCode] = { players: {} };
     
+    // Guarda o acessório inicial
     rooms[roomCode].players[socket.id] = { 
       position: { x: 0, y: 1.6, z: 0 }, 
       rotY: 0,
       username: username,
-      muted: false
+      muted: false,
+      accessory: 'none'
     };
     
     socket.emit('currentPlayers', rooms[roomCode].players);
@@ -42,6 +44,15 @@ io.on('connection', (socket) => {
     if (rooms[roomCode] && rooms[roomCode].players[socket.id]) {
       rooms[roomCode].players[socket.id].rotY = rotY;
       socket.to(roomCode).emit('playerRotated', { id: socket.id, rotY });
+    }
+  });
+
+  // NOVO: Atualizar Acessório
+  socket.on('updateAccessory', (data) => {
+    const { roomCode, accessory } = data;
+    if (rooms[roomCode] && rooms[roomCode].players[socket.id]) {
+      rooms[roomCode].players[socket.id].accessory = accessory;
+      socket.to(roomCode).emit('playerAccessoryChanged', { id: socket.id, accessory });
     }
   });
 
