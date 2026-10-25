@@ -9,13 +9,26 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
   body { background: #111; overflow: hidden; font-family: 'Inter', sans-serif; color: #fff; }
-  canvas { display: block; }
-  #menu { position: fixed; inset: 0; z-index: 1000; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+  
+  /* O Canvas 3D fica no fundo e não bloqueia cliques */
+  canvas { 
+    display: block; 
+    position: fixed; 
+    inset: 0; 
+    z-index: 0; 
+    pointer-events: none; 
+  }
+
+  /* UI Fica por cima de tudo */
+  #menu, #settingsPanel, #toastContainer, #settingsBtn, #hud { z-index: 100; }
+
+  #menu { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #menu.hidden { display: none; }
   #menu h1 { font-size: 32px; margin-bottom: 20px; color: #00ffaa; font-weight: 800; }
   #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 20px; width: 250px; }
   #menu button { background: #222; border: 2px solid #444; color: #fff; padding: 15px 40px; font-size: 18px; margin: 8px; border-radius: 10px; cursor: pointer; width: 250px; font-weight: 600; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
   #menu button:hover { border-color: #00ffaa; background: #333; }
+  
   #lobbyBox { display: none; flex-direction: column; align-items: center; background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%; max-width: 400px; margin-top: 15px; }
   #lobbyBox.show { display: flex; }
   #lobbyBox h3 { font-size: 14px; color: #00ffaa; margin-bottom: 10px; text-transform: uppercase; }
@@ -24,34 +37,43 @@
   #copyBtn { background: #00ffaa; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; }
   #playerList { list-style: none; width: 100%; margin-top: 15px; font-size: 14px; color: #ccc; border-top: 1px solid #333; padding-top: 10px; max-height: 200px; overflow-y: auto; }
   #playerList li { padding: 8px 0; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #222; }
+  
   .voice-icon { width: 12px; height: 12px; border-radius: 50%; background: #555; }
   .voice-icon.talking { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
   .voice-icon.listening { background: #ffcc00; }
+  
   #startGameBtn { background: #ff00aa !important; border-color: #ff00aa !important; margin-top: 20px !important; display: none; }
   #startGameBtn.show { display: flex; }
-  #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; z-index: 50; }
+  
+  #hud { position: fixed; top: 20px; left: 20px; font-size: 12px; color: #888; pointer-events: none; }
   #webcam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.1; display: none; }
-  #settingsBtn { position: fixed; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.6); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; z-index: 100; }
-  #settingsPanel { position: fixed; top: 60px; right: 10px; z-index: 200; background: rgba(20,20,20,0.95); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
+  
+  #settingsBtn { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  #version { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #444; pointer-events: none; }
+  
+  #settingsPanel { position: fixed; top: 60px; right: 10px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 260px; max-height: 70vh; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
   #settingsPanel.show { display: flex; }
   #settingsContent { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
   .setting-group h3 { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
   .setting-options { display: flex; gap: 4px; }
   .setting-options button { background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; flex: 1; }
   .setting-options button.active { background: #00ffaa; color: #000; border-color: #00ffaa; font-weight: bold; }
+  
   #voiceStatus { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 10px; }
   #voiceDot { width: 10px; height: 10px; border-radius: 50%; background: #ff4444; }
   .active-voice { background: #00ffaa !important; color: #000 !important; border-color: #00ffaa !important; }
   #toggleMicBtn { width: 100%; padding: 10px; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
   #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
-  #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 3000; pointer-events: none; align-items: center; }
+  
+  #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: none; align-items: center; }
   .toast { background: rgba(20, 20, 20, 0.9); border: 1px solid #00ffaa; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; animation: slideUp 0.3s ease-out; display: flex; align-items: center; gap: 5px; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
+
+<video id="webcam" autoplay playsinline muted></video>
 
 <div id="menu">
   <h1>Blocky Tag</h1>
@@ -70,7 +92,7 @@
 
 <div id="hud">A carregar...</div>
 <button id="settingsBtn"><i data-lucide="settings"></i></button>
-<div id="version">v8.1.0</div>
+<div id="version">v8.2.0 - UI Fix</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -97,7 +119,6 @@
 </div>
 
 <div id="toastContainer"></div>
-<video id="webcam" autoplay playsinline muted></video>
 
 <script type="importmap">
 {
