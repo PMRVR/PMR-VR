@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Tag - Moderação</title>
+<title>Blocky Tag - Accessory Sync & Fix</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -56,7 +56,6 @@
   #leaveRoomBtn { width: 100%; padding: 10px; border-radius: 8px; background: #ff4444; color: #fff; border: 1px solid #ff4444; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; font-weight: bold; }
   #closeSettings { background: #333; color: #fff; border: none; padding: 12px; cursor: pointer; font-size: 13px; border-top: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
-  /* MODERAÇÃO (OWNER ONLY) */
   #adminPanel { display: none; flex-direction: column; gap: 8px; }
   #adminPanel.show { display: flex; }
   .player-mod-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px; border-radius: 6px; font-size: 13px; }
@@ -102,7 +101,7 @@
 <div id="hud">A carregar...</div>
 
 <button id="settingsBtn">⚙️</button>
-<div id="version">v14.0.0</div>
+<div id="version">v15.0.0</div>
 
 <div id="settingsPanel">
   <div id="settingsContent">
@@ -270,18 +269,31 @@ const playerPos = new THREE.Vector3(0, CONFIG.PLAYER_HEIGHT, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
 let isGrabbing = false, isGrounded = false;
 
-// ============ GIROSÓPIO OTIMIZADO (O FIX DE 3 LINHAS) ============
-window.addEventListener("deviceorientation", (event) => {
-  if (event.alpha == null || event.beta == null || event.gamma == null) return;
-  
-  // Fix adaptado para VR Box (paisagem)
-  const horizontal = event.alpha;
-  const vertical = event.gamma; 
+// ============ O TEU FIX DE GIROSCÓPIO ============
+let alphaInicial = null;
 
-  camera.rotation.y = THREE.MathUtils.degToRad(horizontal);
-  camera.rotation.x = THREE.MathUtils.degToRad(vertical); 
-  camera.rotation.order = 'YXZ'; 
-}, true);
+window.addEventListener("deviceorientation", (event) => {
+  if (event.alpha === null || event.beta === null) return;
+
+  if (alphaInicial === null) {
+    alphaInicial = event.alpha;
+  }
+
+  const horizontal = THREE.MathUtils.degToRad(
+    event.alpha - alphaInicial
+  );
+
+  const vertical = THREE.MathUtils.degToRad(
+    event.beta - 90
+  );
+
+  // Esquerda e direita
+  camera.rotation.order = "YXZ";
+  camera.rotation.y = -horizontal;
+
+  // Cima e baixo
+  camera.rotation.x = -vertical;
+});
 
 let handLandmarker = null, lastVideoTime = -1, prevLeftPos = new THREE.Vector3(), prevRightPos = new THREE.Vector3(), lastHandDetectTime = 0;
 
@@ -352,7 +364,7 @@ function renderAdminPanel(players) {
   const list = document.getElementById('playerModList');
   list.innerHTML = '';
   Object.keys(players).forEach(id => {
-    if (id === socket.id) return; // Não mostra ele mesmo
+    if (id === socket.id) return;
     const p = players[id];
     const row = document.createElement('div');
     row.className = 'player-mod-row';
@@ -385,6 +397,8 @@ function setupSocketEvents() {
     document.getElementById('menu').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
     gameStarted = true;
+    
+    // Envia o acessório atual para o servidor assim que entra
     socket.emit('updateAccessory', { roomCode, accessory: settings.acc });
   });
 
@@ -405,7 +419,6 @@ function setupSocketEvents() {
     addRemotePlayer(player.id, player.position, player.username, player.rotY, player.accessory); 
     showToast(`${player.username} entrou!`); 
     if (isOwner) {
-      // Re-renderiza o painel para incluir o novo jogador
       const dummyPlayers = { ...remotePlayers, [player.id]: player };
       renderAdminPanel(dummyPlayers);
     }
@@ -414,7 +427,15 @@ function setupSocketEvents() {
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
   socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].targetRotY = data.rotY; });
   socket.on('playerMuteChanged', (data) => { if (remotePlayers[data.id]) { remotePlayers[data.id].isTalking = !data.muted; remotePlayers[data.id].faceMat.map = createFaceTexture(!data.muted); remotePlayers[data.id].faceMat.needsUpdate = true; } });
-  socket.on('playerAccessoryChanged', (data) => { if (remotePlayers[data.id]) updateRemoteAccessory(remotePlayers[data.id], data.accessory); });
+  
+  // RECEBER A ATUALIZAÇÃO DO ACESSÓRIO DE OUTRO JOGADOR
+  socket.on('playerAccessoryChanged', (data) => { 
+    if (remotePlayers[data.id]) {
+      updateRemoteAccessory(remotePlayers[data.id], data.accessory);
+      // Se o painel de admin estiver aberto, atualiza as opções visuais (opcional)
+    } 
+  });
+  
   socket.on('playerDisconnected', (id) => { 
     if (remotePlayers[id]) { 
       showToast(`${remotePlayers[id].username} saiu.`); 
@@ -528,7 +549,6 @@ function loop() {
     myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
     myBodyGroup.rotation.y = camera.rotation.y; 
 
-    // Interpolação de rotação suave
     Object.keys(remotePlayers).forEach(id => {
       const rp = remotePlayers[id];
       if (rp.targetRotY !== undefined) {
