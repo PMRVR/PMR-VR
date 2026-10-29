@@ -17,17 +17,14 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', (data) => {
     const { roomCode, username } = data;
     if (bannedUsers[roomCode] && bannedUsers[roomCode].includes(username)) {
-      socket.emit('bannedError', 'Foste banido desta sala.');
+      socket.emit('bannedError', 'Foste banido.');
       return;
     }
-
     socket.join(roomCode);
     if (!rooms[roomCode]) rooms[roomCode] = { players: {}, ownerId: socket.id };
     
     const isOwner = rooms[roomCode].ownerId === socket.id;
-    rooms[roomCode].players[socket.id] = { 
-      position: { x: 0, y: 1.6, z: 0 }, rotY: 0, username, muted: false, accessory: 'none', isOwner
-    };
+    rooms[roomCode].players[socket.id] = { position: { x: 0, y: 1.6, z: 0 }, rotY: 0, username, muted: false, accessory: 'none', isOwner };
     
     socket.emit('currentPlayers', rooms[roomCode].players);
     socket.emit('ownerStatus', isOwner);
