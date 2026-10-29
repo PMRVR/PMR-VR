@@ -11,41 +11,26 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = {};
-const bannedUsers = {}; // Guarda quem foi banido por sala
+const bannedUsers = {};
 
 io.on('connection', (socket) => {
   socket.on('joinRoom', (data) => {
     const { roomCode, username } = data;
-
-    // VERIFICAÇÃO DE BANIMENTO
     if (bannedUsers[roomCode] && bannedUsers[roomCode].includes(username)) {
       socket.emit('bannedError', 'Foste banido desta sala.');
       return;
     }
 
     socket.join(roomCode);
+    if (!rooms[roomCode]) rooms[roomCode] = { players: {}, ownerId: socket.id };
     
-    if (!rooms[roomCode]) {
-      rooms[roomCode] = { 
-        players: {}, 
-        ownerId: socket.id // O primeiro a entrar é o dono
-      };
-    }
-
     const isOwner = rooms[roomCode].ownerId === socket.id;
-    
     rooms[roomCode].players[socket.id] = { 
-      position: { x: 0, y: 1.6, z: 0 }, 
-      rotY: 0,
-      username: username,
-      muted: false,
-      accessory: 'none',
-      isOwner: isOwner
+      position: { x: 0, y: 1.6, z: 0 }, rotY: 0, username, muted: false, accessory: 'none', isOwner
     };
     
     socket.emit('currentPlayers', rooms[roomCode].players);
     socket.emit('ownerStatus', isOwner);
-    
     socket.to(roomCode).emit('newPlayer', { id: socket.id, ...rooms[roomCode].players[socket.id] });
   });
 
@@ -81,27 +66,18 @@ io.on('connection', (socket) => {
     }
   });
 
-  // SISTEMA DE KICK E BAN
   socket.on('moderatePlayer', (data) => {
     const { roomCode, targetId, action } = data;
     if (rooms[roomCode] && rooms[roomCode].ownerId === socket.id) {
       const targetName = rooms[roomCode].players[targetId]?.username;
-      
       if (action === 'kick') {
         const targetSocket = io.sockets.sockets.get(targetId);
-        if (targetSocket) {
-          targetSocket.emit('kickedError', 'Foste expulso pelo dono da sala.');
-          targetSocket.disconnect();
-        }
+        if (targetSocket) { targetSocket.emit('kickedError', 'Foste expulso.'); targetSocket.disconnect(); }
       } else if (action === 'ban') {
         if (!bannedUsers[roomCode]) bannedUsers[roomCode] = [];
         if (targetName) bannedUsers[roomCode].push(targetName);
-        
         const targetSocket = io.sockets.sockets.get(targetId);
-        if (targetSocket) {
-          targetSocket.emit('bannedError', 'Foste banido pelo dono da sala.');
-          targetSocket.disconnect();
-        }
+        if (targetSocket) { targetSocket.emit('bannedError', 'Foste banido.'); targetSocket.disconnect(); }
       }
     }
   });
@@ -115,12 +91,10 @@ io.on('connection', (socket) => {
       if (rooms[roomCode].players[socket.id]) {
         delete rooms[roomCode].players[socket.id];
         socket.to(roomCode).emit('playerDisconnected', socket.id);
-        
-        // Se o dono sair, passa a coroa para o próximo
         if (rooms[roomCode].ownerId === socket.id) {
-          const remainingPlayers = Object.keys(rooms[roomCode].players);
-          if (remainingPlayers.length > 0) {
-            rooms[roomCode].ownerId = remainingPlayers[0];
+          const remaining = Object.keys(rooms[roomCode].players);
+          if (remaining.length > 0) {
+            rooms[roomCode].ownerId = remaining[0];
             io.to(rooms[roomCode].ownerId).emit('ownerStatus', true);
             io.to(roomCode).emit('newOwner', rooms[roomCode].ownerId);
           }
