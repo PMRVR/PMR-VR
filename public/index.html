@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Blocky Tag - Adicionamos mais bugs pra corrigir depois</title>
+<title>Blocky Tag - Tab UI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -14,38 +14,67 @@
   body { background: #0f0f0f; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
   canvas { position: fixed; inset: 0; z-index: -1; pointer-events: none; display: block; }
 
-  .screen { position: fixed; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; z-index: 10; background: #0f0f0f; }
-  .screen.active { display: flex; }
+  /* ================= ESTRUTURA DE ABAS ================= */
+  #app-container { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  
+  .tab-content {
+    position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 70px); /* 70px é a altura da barra de abas */
+    padding: 20px; overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 1;
+  }
+  .tab-content.active { transform: translateX(0); z-index: 2; }
+  .tab-content.previous { transform: translateX(-20%); z-index: 0; }
 
-  #menu-screen h1 { font-size: 36px; font-weight: 800; color: #00ffaa; margin-bottom: 5px; }
-  #menu-screen p { font-size: 14px; color: #888; margin-bottom: 30px; }
-  #usernameInput { padding: 12px 20px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #222; color: #fff; text-align: center; margin-bottom: 20px; width: 100%; max-width: 300px; }
-  .menu-btn { background: #00ffaa; color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: 700; width: 100%; max-width: 300px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px;}
+  /* ================= TAB: PLAY ONLINE ================= */
+  #tab-online { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #tab-online h1 { font-size: 36px; font-weight: 800; color: #00ffaa; margin-bottom: 5px; }
+  #tab-online p { font-size: 14px; color: #888; margin-bottom: 30px; }
+  .menu-btn { background: #00ffaa; color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: 700; width: 100%; max-width: 300px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; }
   .menu-btn.secondary { background: #222; color: #fff; border: 1px solid #444; }
   #join-code-input { padding: 12px; font-size: 16px; border-radius: 10px; border: 2px solid #444; background: #000; color: #fff; text-align: center; margin-bottom: 10px; width: 100%; max-width: 300px; font-family: monospace; }
 
+  /* ================= TAB: CONFIGURAÇÕES ================= */
+  #tab-settings { display: flex; flex-direction: column; }
+  #tab-settings h2 { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+  .settings-group { background: #1c1c1e; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+  .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #222; }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 15px; font-weight: 500; }
+  .settings-sub { font-size: 12px; color: #888; margin-top: 4px; }
+  .toggle { position: relative; width: 52px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 16px; cursor: pointer; border: none; flex-shrink: 0; }
+  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; background: #fff; border-radius: 50%; transition: 0.3s; }
+  .toggle.on { background: #00ffaa; }
+  .toggle.on::after { transform: translateX(20px); }
+  .input-field { width: 100%; padding: 12px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 16px; margin-top: 10px; }
+
+  /* ================= BARRA DE ABAS INFERIOR ================= */
+  #bottom-tabs {
+    height: 70px; background: #151515; border-top: 1px solid #222;
+    display: flex; justify-content: space-around; align-items: center;
+    z-index: 100; flex-shrink: 0;
+  }
+  .tab-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; color: #555; font-size: 11px; font-weight: 600; cursor: pointer;
+    background: none; border: none; width: 50%; height: 100%; transition: color 0.2s;
+  }
+  .tab-btn i { font-size: 22px; }
+  .tab-btn.active { color: #00ffaa; }
+
+  /* ================= UI DO JOGO ================= */
   #game-ui { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
   #game-ui.active { display: block; }
   #room-info { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); border: 1px solid #00ffaa; padding: 10px 15px; border-radius: 10px; font-family: monospace; font-size: 14px; font-weight: bold; }
   #room-info span { color: #00ffaa; font-size: 18px; }
   #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); opacity: 0.5; }
   .nametag { position: fixed; top: 0; left: 0; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 5; transform: translate(-50%, -50%); white-space: nowrap; border: 1px solid rgba(255,255,255,0.2); }
-
-  #settings-btn { position: fixed; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; pointer-events: auto;}
-  #settings-panel { position: fixed; top: 60px; right: 10px; width: 300px; background: rgba(20,20,20,0.98); border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; z-index: 200; max-height: 80vh; overflow-y: auto; pointer-events: auto;}
-  #settings-panel.show { display: flex; }
-  .settings-header { padding: 15px; border-bottom: 1px solid #333; font-weight: 700; }
-  .setting-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #222; font-size: 14px; align-items: center; }
-  .toggle { width: 40px; height: 20px; background: #333; border-radius: 10px; position: relative; cursor: pointer; }
-  .toggle.on { background: #00ffaa; }
-  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: 0.2s; }
-  .toggle.on::after { transform: translateX(20px); }
-  .mod-btn { background: #ff4444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 5px; }
-  .mod-btn.ban { background: #ffaa00; color: #000; }
-
-  #voice-btn { position: fixed; bottom: 20px; right: 20px; z-index: 100; width: 60px; height: 60px; border-radius: 50%; background: #222; border: 2px solid #444; color: #fff; font-size: 24px; display: grid; place-items: center; cursor: pointer; pointer-events: auto; transition: 0.2s;}
+  
+  #voice-btn { position: fixed; bottom: 90px; right: 20px; z-index: 100; width: 60px; height: 60px; border-radius: 50%; background: #222; border: 2px solid #444; color: #fff; font-size: 24px; display: grid; place-items: center; cursor: pointer; pointer-events: auto; transition: 0.2s;}
   #voice-btn.active { background: #00ffaa; color: #000; border-color: #00ffaa; box-shadow: 0 0 20px rgba(0,255,170,0.5); }
 
+  /* MODAL DE COOKIES */
   #cookie-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: flex-end; z-index: 1000; pointer-events: auto;}
   #cookie-modal.show { display: flex; }
   .cookie-box { background: #1c1c1e; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px 20px 0 0; animation: slideUp 0.3s; }
@@ -54,32 +83,77 @@
 </head>
 <body>
 
-<div id="menu-screen" class="screen active">
-  <h1>Blocky Tag</h1>
-  <p>Update: Adicionamos mais bugs pra corrigir depois</p>
-  <input type="text" id="usernameInput" placeholder="O teu nome..." maxlength="15" />
-  <button class="menu-btn" onclick="createRoom()"><i class="fa-solid fa-plus"></i> Criar Sala</button>
-  <input type="text" id="join-code-input" placeholder="Código da Sala (ex: 1234)" />
-  <button class="menu-btn secondary" onclick="joinRoom()"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar</button>
-</div>
+<div id="app-container">
+  <!-- TAB: PLAY ONLINE -->
+  <div id="tab-online" class="tab-content active">
+    <h1>Blocky Tag</h1>
+    <p>Multiplayer VR</p>
+    
+    <input type="text" id="join-code-input" placeholder="Código da Sala (ex: 1234)" />
+    
+    <button class="menu-btn" onclick="createRoom()"><i class="fa-solid fa-plus"></i> Criar Sala Pública</button>
+    <button class="menu-btn secondary" onclick="joinRoom()"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar com Código</button>
+  </div>
 
-<div id="game-ui">
-  <div id="room-info">Sala: <span id="room-code-display">------</span></div>
-  <div id="crosshair"></div>
-  <button id="settings-btn" onclick="toggleSettings()"><i class="fa-solid fa-gear"></i></button>
-  <button id="voice-btn" onclick="toggleVoiceChat()"><i class="fa-solid fa-microphone-slash"></i></button>
-  
-  <div id="settings-panel">
-    <div class="settings-header">Configurações</div>
-    <div class="setting-row"><span>Modo de Voo (Gravidade)</span><div class="toggle" id="toggle-gravity" onclick="this.classList.toggle('on')"></div></div>
-    <div id="admin-panel" style="display: none;">
-      <div class="settings-header" style="color: #ff4444;">👑 Painel do Dono</div>
-      <div id="player-mod-list" style="padding: 10px;"></div>
+  <!-- TAB: CONFIGURAÇÕES -->
+  <div id="tab-settings" class="tab-content">
+    <h2>Configurações</h2>
+    
+    <div class="settings-group">
+      <div style="font-size:12px; font-weight:700; color:#00ffaa; margin-bottom:8px;">Jogador</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Username</div><div class="settings-sub">Nome visível no jogo</div></div>
+      </div>
+      <input type="text" id="usernameInput" class="input-field" placeholder="O teu nome..." maxlength="15" />
+      
+      <div class="settings-row" style="margin-top: 10px;">
+        <div><div class="settings-label">Idade (Opcional)</div><div class="settings-sub">Apenas para compliance (LGPD)</div></div>
+      </div>
+      <input type="number" id="ageInput" class="input-field" placeholder="Ex: 13" min="13" max="99" />
     </div>
-    <button class="menu-btn secondary" style="margin: 15px; width: calc(100% - 30px);" onclick="toggleSettings()">Fechar</button>
+
+    <div class="settings-group">
+      <div style="font-size:12px; font-weight:700; color:#00ffaa; margin-bottom:8px;">Sistema</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Giroscópio</div><div class="settings-sub">Rodar a câmara</div></div>
+        <button class="toggle on" id="toggle-gyro" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Modo de Voo</div><div class="settings-sub">Sem gravidade</div></div>
+        <button class="toggle" id="toggle-gravity" onclick="this.classList.toggle('on')"></button>
+      </div>
+    </div>
+    
+    <div class="settings-group">
+      <div style="font-size:12px; font-weight:700; color:#ff4444; margin-bottom:8px;">Zona de Perigo</div>
+      <div class="settings-row" onclick="if(confirm('Apagar todos os dados?')) { localStorage.clear(); location.reload(); }" style="cursor: pointer;">
+        <div><div class="settings-label">Apagar Dados</div><div class="settings-sub">Remove apps instaladas e username</div></div>
+        <i class="fa-solid fa-trash" style="color: #ff4444;"></i>
+      </div>
+    </div>
   </div>
 </div>
 
+<!-- BARRA DE ABAS INFERIOR -->
+<div id="bottom-tabs">
+  <button class="tab-btn active" data-target="tab-online" onclick="switchTab('tab-online', this)">
+    <i class="fa-solid fa-gamepad"></i>
+    <span>Jogar Online</span>
+  </button>
+  <button class="tab-btn" data-target="tab-settings" onclick="switchTab('tab-settings', this)">
+    <i class="fa-solid fa-gear"></i>
+    <span>Configurações</span>
+  </button>
+</div>
+
+<!-- UI DO JOGO -->
+<div id="game-ui">
+  <div id="room-info">Sala: <span id="room-code-display">------</span></div>
+  <div id="crosshair"></div>
+  <button id="voice-btn" onclick="toggleVoiceChat()"><i class="fa-solid fa-microphone-slash"></i></button>
+</div>
+
+<!-- MODAL DE COOKIES -->
 <div id="cookie-modal">
   <div class="cookie-box">
     <h3>Privacidade e Cookies</h3>
@@ -101,6 +175,27 @@
 import * as THREE from 'three';
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
 import { io } from "socket.io-client";
+
+// ============ SISTEMA DE ABAS (SLIDE ANIMATION) ============
+window.switchTab = (targetId, btnElement) => {
+  const currentTab = document.querySelector('.tab-content.active');
+  const nextTab = document.getElementById(targetId);
+  
+  if (currentTab === nextTab) return;
+
+  // Atualiza botões
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  btnElement.classList.add('active');
+
+  // Animação de Slide
+  nextTab.classList.add('active');
+  nextTab.classList.remove('previous');
+  
+  currentTab.classList.remove('active');
+  currentTab.classList.add('previous');
+  
+  setTimeout(() => currentTab.classList.remove('previous'), 300);
+};
 
 // ============ CLASSE GYROSCOPE CONTROLLER ============
 export class GyroscopeController {
@@ -162,7 +257,7 @@ export class GyroscopeController {
 
 // ============ VARIÁVEIS GLOBAIS ============
 let socket = null;
-let myUsername = "Jogador";
+let myUsername = localStorage.getItem('pmr_username') || "Jogador";
 let roomCode = null;
 let isMultiplayer = false;
 let remotePlayers = {};
@@ -193,21 +288,22 @@ let myBodyGroup;
 
 let localStream = null;
 let isVoiceActive = false;
-const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  // Coloca o teu TURN da Metered aqui se precisares de ligar entre redes 4G
-  // { urls: 'turn:global.relay.metered.ca:80', username: 'SEU_USER', credential: 'SUA_PASS' }
-];
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+// Carrega o username salvo no input das configurações
+document.getElementById('usernameInput').value = myUsername;
 
 // ============ MENU E SOCKET ============
 window.createRoom = () => {
   myUsername = document.getElementById('usernameInput').value.trim() || "Jogador";
+  localStorage.setItem('pmr_username', myUsername);
   roomCode = Math.floor(1000 + Math.random() * 9000).toString();
   connectToServer(roomCode);
 };
 
 window.joinRoom = () => {
   myUsername = document.getElementById('usernameInput').value.trim() || "Jogador";
+  localStorage.setItem('pmr_username', myUsername);
   const code = document.getElementById('join-code-input').value.trim();
   if (!code) return alert("Insere o código da sala!");
   roomCode = code;
@@ -221,7 +317,8 @@ function connectToServer(code) {
   socket.on('connect', () => {
     socket.emit('joinRoom', { roomCode: code, username: myUsername });
     document.getElementById('room-code-display').innerText = code;
-    document.getElementById('menu-screen').classList.remove('active');
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('bottom-tabs').style.display = 'none';
     document.getElementById('game-ui').classList.add('active');
     document.getElementById('cookie-modal').classList.add('show');
     initGame();
@@ -229,8 +326,8 @@ function connectToServer(code) {
 
   socket.on('bannedError', (msg) => { alert(msg); location.reload(); });
   socket.on('kickedError', (msg) => { alert(msg); location.reload(); });
-  socket.on('ownerStatus', (status) => { isOwner = status; if(isOwner) document.getElementById('admin-panel').style.display = 'block'; });
-  socket.on('currentPlayers', (players) => { Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id]); }); renderAdminList(players); });
+  socket.on('ownerStatus', (status) => { isOwner = status; });
+  socket.on('currentPlayers', (players) => { Object.keys(players).forEach(id => { if (id !== socket.id) addRemotePlayer(id, players[id]); }); });
   socket.on('newPlayer', (player) => addRemotePlayer(player.id, player));
   socket.on('playerMoved', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].group.position.lerp(new THREE.Vector3(data.position.x, data.position.y, data.position.z), 0.2); });
   socket.on('playerRotated', (data) => { if (remotePlayers[data.id]) remotePlayers[data.id].targetRotY = data.rotY; });
@@ -314,40 +411,19 @@ window.toggleVoiceChat = async () => {
   if (!isVoiceActive) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { 
-          echoCancellation: true, 
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 48000
-        } 
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 } 
       });
-
       isVoiceActive = true;
       btn.classList.add('active');
       btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
-
-      // Conecta com os jogadores existentes
-      for (let id in remotePlayers) {
-        createPeerConnection(id, true);
-      }
-
-    } catch (e) {
-      alert("Não foi possível aceder ao microfone: " + e.message);
-    }
+      for (let id in remotePlayers) createPeerConnection(id, true);
+    } catch (e) { alert("Microfone: " + e.message); }
   } else {
-    if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
-      localStream = null;
-    }
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     isVoiceActive = false;
     btn.classList.remove('active');
     btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
-    
-    for (let id in peerConnections) {
-      peerConnections[id].close();
-      delete peerConnections[id];
-    }
+    for (let id in peerConnections) { peerConnections[id].close(); delete peerConnections[id]; }
   }
 };
 
@@ -355,29 +431,16 @@ function createPeerConnection(targetId, isInitiator) {
   if (peerConnections[targetId]) return peerConnections[targetId];
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
   peerConnections[targetId] = pc;
-
-  if (localStream) {
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-  }
-
+  if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
   pc.ontrack = (event) => {
     const audio = document.createElement('audio');
     audio.srcObject = event.streams[0];
     audio.autoplay = true;
-    audio.volume = 1.0; // Garante volume máximo
+    audio.volume = 1.0;
     document.body.appendChild(audio);
   };
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate) socket.emit('webrtc-ice-candidate', { target: targetId, candidate: event.candidate });
-  };
-
-  if (isInitiator) {
-    pc.createOffer().then(offer => {
-      pc.setLocalDescription(offer);
-      socket.emit('webrtc-offer', { target: targetId, offer });
-    });
-  }
+  pc.onicecandidate = (event) => { if (event.candidate) socket.emit('webrtc-ice-candidate', { target: targetId, candidate: event.candidate }); };
+  if (isInitiator) pc.createOffer().then(offer => { pc.setLocalDescription(offer); socket.emit('webrtc-offer', { target: targetId, offer }); });
   return pc;
 }
 
@@ -415,30 +478,23 @@ function processHands(hands) {
     const handMesh = isRight ? rightHandMesh : leftHandMesh;
     const prevPos = isRight ? prevRightPos : prevLeftPos;
     handMesh.visible = true;
-
     const indexTip = lm[8];
     const ndcX = (1 - indexTip.x) * 2 - 1;
     const ndcY = -(indexTip.y * 2 - 1);
-    
     const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
     const up = new THREE.Vector3(0,1,0);
-    
     const handWorldPos = new THREE.Vector3().copy(camera.position)
       .add(forward.clone().multiplyScalar(0.5))
       .add(right.clone().multiplyScalar(ndcX * 0.3))
       .add(up.clone().multiplyScalar(ndcY * 0.3));
-
     handMesh.position.copy(handWorldPos);
-
     if (prevPos.lengthSq() > 0) {
       const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
       if (delta.length() < 0.5) {
         const push = delta.multiplyScalar(-PUSH_MULTIPLIER);
         playerVel.add(push);
-        if (playerVel.length() > MAX_SPEED) {
-          playerVel.normalize().multiplyScalar(MAX_SPEED);
-        }
+        if (playerVel.length() > MAX_SPEED) { playerVel.normalize().multiplyScalar(MAX_SPEED); }
       }
     }
     prevPos.copy(handWorldPos);
@@ -454,18 +510,15 @@ function animate() {
   lastTime = now;
 
   if (gameStarted) {
-    if (gyroController) gyroController.update();
+    if (gyroController && document.getElementById('toggle-gyro').classList.contains('on')) {
+      gyroController.update();
+    }
 
     const isZeroGravity = document.getElementById('toggle-gravity').classList.contains('on');
     if (!isZeroGravity) playerVel.y -= GRAVITY * dt;
     
-    if (isGrounded) {
-      playerVel.x *= GROUND_FRICTION;
-      playerVel.z *= GROUND_FRICTION;
-    } else {
-      playerVel.x *= AIR_DRAG;
-      playerVel.z *= AIR_DRAG;
-    }
+    if (isGrounded) { playerVel.x *= GROUND_FRICTION; playerVel.z *= GROUND_FRICTION; } 
+    else { playerVel.x *= AIR_DRAG; playerVel.z *= AIR_DRAG; }
 
     playerPos.addScaledVector(playerVel, dt);
 
@@ -502,21 +555,17 @@ function addRemotePlayer(id, player) {
   const faceMat = new THREE.MeshBasicMaterial({ map: createFaceTexture(false) });
   const sideMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
   const headMats = [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
-
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), headMats);
   head.position.y = 0.4; group.add(head);
   const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
   belly.position.y = -0.4; group.add(belly);
-
   group.position.set(player.position.x, player.position.y, player.position.z); 
   group.rotation.y = player.rotY || 0;
   scene.add(group);
-  
   const nametag = document.createElement('div');
   nametag.className = 'nametag';
   nametag.innerText = player.username;
   document.body.appendChild(nametag);
-  
   remotePlayers[id] = { group, username: player.username, faceMat, targetRotY: player.rotY, nametag };
 }
 
@@ -526,7 +575,6 @@ function createFaceTexture(isTalking) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#888888'; ctx.fillRect(0, 0, 256, 256);
   ctx.fillStyle = '#111'; ctx.strokeStyle = '#111'; ctx.lineWidth = 8; ctx.lineCap = 'round';
-
   if (isTalking) {
     ctx.beginPath(); ctx.arc(80, 100, 12, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(176, 100, 12, 0, Math.PI * 2); ctx.fill();
@@ -538,22 +586,6 @@ function createFaceTexture(isTalking) {
   }
   return new THREE.CanvasTexture(canvas);
 }
-
-// ============ UI ============
-window.toggleSettings = () => document.getElementById('settings-panel').classList.toggle('show');
-
-function renderAdminList(players) {
-  const list = document.getElementById('player-mod-list');
-  list.innerHTML = '';
-  Object.keys(players).forEach(id => {
-    if (id === socket.id) return;
-    const p = players[id];
-    list.innerHTML += `<div class="setting-row"><span>${p.username}</span><div><button class="mod-btn" onclick="kick('${id}')">Kick</button><button class="mod-btn ban" onclick="ban('${id}')">Ban</button></div></div>`;
-  });
-}
-
-window.kick = (id) => { socket.emit('moderatePlayer', { roomCode, targetId: id, action: 'kick' }); };
-window.ban = (id) => { socket.emit('moderatePlayer', { roomCode, targetId: id, action: 'ban' }); };
 
 window.addEventListener('resize', () => {
   if (camera) {
