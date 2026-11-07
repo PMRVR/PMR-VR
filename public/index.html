@@ -58,8 +58,16 @@
   .tab-btn i { font-size: 22px; }
   .tab-btn.active { color: #00ffaa; }
 
+  /* UI DO JOGO (Agora vai flutuar com o giroscópio) */
   #game-ui { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
   #game-ui.active { display: block; }
+
+  /* Contentor que vai rodar no ecrã inteiro */
+  #ui-hud {
+    position: absolute; top: 50%; left: 50%; width: 100vw; height: 100vh;
+    transform-origin: center center;
+    transform: translate(-50%, -50%); /* Base para a matemática do giroscópio */
+  }
   
   #top-bar { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
   #room-info { background: rgba(0,0,0,0.7); border: 1px solid #00ffaa; padding: 10px 15px; border-radius: 10px; font-family: monospace; font-size: 14px; font-weight: bold; pointer-events: auto; }
@@ -74,7 +82,7 @@
   
   .nametag { position: fixed; top: 0; left: 0; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 5; transform: translate(-50%, -50%); white-space: nowrap; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
 
-  #pause-menu { position: fixed; inset: 0; z-index: 200; background: rgba(15,15,15,0.9); backdrop-filter: blur(5px); display: none; flex-direction: column; align-items: center; justify-content: center; }
+  #pause-menu { position: fixed; inset: 0; z-index: 200; background: rgba(15,15,15,0.9); backdrop-filter: blur(5px); display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; }
   #pause-menu.active { display: flex; }
   #pause-menu h2 { font-size: 32px; font-weight: 800; color: #00ffaa; margin-bottom: 30px; }
   .pause-btn { background: #222; color: #fff; border: 1px solid #444; padding: 15px; border-radius: 12px; font-size: 18px; font-weight: 600; width: 80%; max-width: 300px; margin-bottom: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; }
@@ -87,27 +95,7 @@
   #vr-btn.visible { display: flex; }
   #vr-btn:active { background: #00ffaa; color: #000; }
 
-  /* VOICE CHAT COM GIROSCÓPIO */
-  #voice-btn { 
-    position: fixed; 
-    bottom: 90px; 
-    right: 20px; 
-    z-index: 100; 
-    width: 60px; 
-    height: 60px; 
-    border-radius: 50%; 
-    background: #222; 
-    border: 2px solid #444; 
-    color: #fff; 
-    font-size: 24px; 
-    display: grid; 
-    place-items: center; 
-    cursor: pointer; 
-    pointer-events: auto; 
-    transition: background 0.2s;
-    /* A transição do transform é mais lenta para o movimento do giroscópio ser suave */
-    transition: background 0.2s, transform 0.1s linear;
-  }
+  #voice-btn { position: absolute; bottom: 90px; right: 20px; z-index: 100; width: 60px; height: 60px; border-radius: 50%; background: #222; border: 2px solid #444; color: #fff; font-size: 24px; display: grid; place-items: center; cursor: pointer; pointer-events: auto; transition: background 0.2s; }
   #voice-btn.active { background: #00ffaa; color: #000; border-color: #00ffaa; box-shadow: 0 0 20px rgba(0,255,170,0.5); }
 </style>
 </head>
@@ -147,20 +135,20 @@
 </div>
 
 <div id="game-ui">
-  <div id="top-bar">
-    <div id="room-info">Sala: <span id="room-code-display">------</span></div>
-    <button id="pause-btn"><i class="fa-solid fa-bars"></i></button>
+  <div id="ui-hud">
+    <div id="top-bar">
+      <div id="room-info">Sala: <span id="room-code-display">------</span></div>
+      <button id="pause-btn"><i class="fa-solid fa-bars"></i></button>
+    </div>
+    <div id="stats-panel">Server FPS: <span id="stat-fps">--</span><br>Ping: <span id="stat-ping">--</span>ms</div>
+    <div id="crosshair"></div>
+    <button id="voice-btn"><i class="fa-solid fa-microphone-slash"></i></button>
   </div>
-  <div id="stats-panel">Server FPS: <span id="stat-fps">--</span><br>Ping: <span id="stat-ping">--</span>ms</div>
-  <div id="crosshair"></div>
 </div>
 
 <div id="vr-btn-container">
   <button id="vr-btn"><i class="fa-solid fa-vr-cardboard"></i> Entrar em VR</button>
 </div>
-
-<!-- Botão de Voz -->
-<button id="voice-btn"><i class="fa-solid fa-microphone-slash"></i></button>
 
 <div id="pause-menu">
   <h2>Pausa</h2>
@@ -216,6 +204,7 @@ let renderer, scene, camera;
 let isThirdPerson = false;
 let isXRSupported = false;
 let xrSession = null;
+let xrControllers = [];
 
 let networkInterval = null;
 let handTrackingInterval = null;
@@ -269,10 +258,19 @@ window.joinRoom = () => {
   connectToServer(roomCode);
 };
 
-// ============ WEBXR ============
+// ============ WEBXR E TRACKING NO VR ============
 async function checkXRSupport() {
   if (!navigator.xr) return false;
   try { return await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { return false; }
+}
+
+function onXRSelectStart(event) {
+  // Simula pinça para clicar no voice chat ao apontar com o controlador
+  const controller = event.target;
+  // Se o controlador estiver a apontar para a zona inferior direita do ecrã
+  if (controller.userData.isRight) {
+    window.toggleVoiceChat();
+  }
 }
 
 async function enterVR() {
@@ -282,6 +280,15 @@ async function enterVR() {
     await renderer.xr.setSession(session);
     xrSession = session;
     
+    // Esconde o botão HTML e ativa o tracking VR
+    document.getElementById('voice-btn').style.display = 'none';
+    document.getElementById('room-info').style.display = 'none';
+    document.getElementById('stats-panel').style.display = 'none';
+    document.getElementById('pause-btn').style.display = 'none';
+
+    // Configura controladores VR
+    setupXRControllers();
+
     if (handTrackingInterval) clearInterval(handTrackingInterval);
     if (leftHandCube) leftHandCube.visible = false;
     if (rightHandCube) rightHandCube.visible = false;
@@ -289,6 +296,13 @@ async function enterVR() {
     session.addEventListener('end', () => {
       xrSession = null;
       document.getElementById('vr-btn').innerHTML = '<i class="fa-solid fa-vr-cardboard"></i> Entrar em VR';
+      
+      // Volta a mostrar o HTML
+      document.getElementById('voice-btn').style.display = 'grid';
+      document.getElementById('room-info').style.display = 'block';
+      document.getElementById('stats-panel').style.display = 'block';
+      document.getElementById('pause-btn').style.display = 'grid';
+
       if (leftHandCube) leftHandCube.visible = true;
       if (rightHandCube) rightHandCube.visible = true;
       startHandTrackingLoop();
@@ -297,6 +311,24 @@ async function enterVR() {
     document.getElementById('vr-btn').innerHTML = '<i class="fa-solid fa-vr-cardboard"></i> Sair de VR';
   } catch (e) {
     alert("Não foi possível entrar em VR: " + e.message);
+  }
+}
+
+function setupXRControllers() {
+  for (let i = 0; i < 2; i++) {
+    const controller = renderer.xr.getController(i);
+    controller.userData.isRight = (i === 1); // 0 = Esquerda, 1 = Direita
+    controller.addEventListener('selectstart', onXRSelectStart);
+    
+    // Adiciona um "cubo" invisível ou uma linha para o controlador ser visível
+    const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const material = new THREE.MeshBasicMaterial({ color: i === 0 ? 0x00ffaa : 0xff00aa });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false; // Podes mudar para true se quiseres ver o controlador
+    controller.add(mesh);
+
+    scene.add(controller);
+    xrControllers.push(controller);
   }
 }
 
@@ -447,12 +479,10 @@ async function initGame() {
   dirLight.position.set(10, 20, 10);
   scene.add(dirLight);
 
-  // Chão
   const floor = new THREE.Mesh(new THREE.BoxGeometry(100, 1, 100), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   floor.position.y = -0.5; scene.add(floor);
   colliders.push(new THREE.Box3().setFromObject(floor));
 
-  // Caixas
   const boxMat = new THREE.MeshBasicMaterial({ color: 0xadd8e6 });
   [{ x: 5, z: -5, size: 2 }, { x: -5, z: -8, size: 3 }, { x: 0, z: -12, size: 4 }].forEach(b => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size, b.size, b.size), boxMat);
@@ -462,7 +492,6 @@ async function initGame() {
 
   createSnow();
 
-  // Modelo
   myBodyGroup = new THREE.Group();
   scene.add(myBodyGroup);
   
@@ -481,7 +510,6 @@ async function initGame() {
     head.position.y = 0.4; myBodyGroup.add(head);
   });
 
-  // Cubos das mãos
   const handGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
   leftHandCube = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.5 }));
   rightHandCube = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa, transparent: true, opacity: 0.5 }));
@@ -510,7 +538,7 @@ async function initGame() {
   }
 }
 
-// ============ GIROSCÓPIO E UI ============
+// ============ GIROSCÓPIO E UI 2D ============
 let gyroData = { pitch: 0, roll: 0 };
 function initGyro() {
   window.addEventListener("deviceorientation", (event) => {
@@ -518,20 +546,18 @@ function initGyro() {
     let roll = event.gamma;
     if (pitch === null || roll === null) return;
     
-    // Guarda os dados para a câmara 3D
     gyroData.pitch = THREE.MathUtils.degToRad(Math.max(-90, Math.min(90, pitch)));
     gyroData.roll = THREE.MathUtils.degToRad(Math.max(-90, Math.min(90, roll)));
 
-    // AQUI ESTÁ O TRUQUE: Move o botão HTML com o giroscópio!
-    const voiceBtn = document.getElementById('voice-btn');
-    if (voiceBtn && !isXRSupported) {
-        // Multiplicamos para dar mais amplitude ao movimento
-        const moveX = roll * 4;   // Vira para os lados
-        const moveY = pitch * 4;  // Vira para cima/baixo
+    // Movimento do HUD HTML com o giroscópio
+    const hud = document.getElementById('ui-hud');
+    if (hud && !isXRSupported) {
+        // Amplitude de 150px para o movimento ser notório
+        const moveX = roll * -5; // Invertido para parecer natural
+        const moveY = pitch * 5;
         
-        // O translate(-50%, -50%) inicial centraliza, e depois aplicamos os moves
-        // Usamos translate3d para ser mais rápido no telemóvel
-        voiceBtn.style.transform = `translate3d(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px), 0)`;
+        // Aplica a translação, mantendo o centro (-50%, -50%)
+        hud.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
     }
   });
 }
@@ -626,8 +652,7 @@ function processHands(hands) {
       Math.pow((indexTip.z || 0) - (thumbTip.z || 0), 2)
     );
     
-    // Gesto de pinça
-    const isPinching = distance < 0.05;
+    const isPinching = distance < 0.05; // Gesto de pinça
 
     const ndcX = (1 - indexTip.x) * 2 - 1;
     const ndcY = -(indexTip.y * 2 - 1);
@@ -641,7 +666,14 @@ function processHands(hands) {
       .add(rightVec.clone().multiplyScalar(ndcX * 0.3))
       .add(up.clone().multiplyScalar(ndcY * 0.3));
 
-    if (handWorldPos.y < 0.075) handWorldPos.y = 0.075;
+    // === PULO AO TOCAR NO CHÃO ===
+    // Se a mão bater no chão e estiver a descer com força
+    let hitFloor = false;
+    if (handWorldPos.y < 0.075) {
+        handWorldPos.y = 0.075;
+        hitFloor = true;
+    }
+
     for (let box of colliders) {
         if (box.containsPoint(handWorldPos)) handWorldPos.y = box.max.y + 0.08;
     }
@@ -653,8 +685,6 @@ function processHands(hands) {
     else isLeftHandTracked = true;
 
     // Verifica se a pinça está a acontecer perto do botão do HTML
-    // Como o botão está no ecrã, não temos a posição 3D dele, 
-    // então usamos a posição da mão no ecrã (NDC) para ver se coincide.
     if (isPinching && !window.isPinchCooldown) {
         // A mão está na parte de baixo e à direita do ecrã?
         if (ndcX > 0.4 && ndcY < -0.4) {
@@ -664,11 +694,19 @@ function processHands(hands) {
         }
     }
 
+    // Física
     if (prevPos.lengthSq() > 0) {
       const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
       if (delta.length() < 0.4) {
         const push = delta.multiplyScalar(-PUSH_MULTIPLIER);
         playerVel.add(push);
+        
+        // Se a mão bateu no chão e o movimento foi para baixo, dá um salto (impulso Y)
+        if (hitFloor && delta.y < -0.02) {
+            playerVel.y += Math.abs(delta.y) * PUSH_MULTIPLIER * 1.5; // Força extra no salto
+            isGrounded = false;
+        }
+        
         if (playerVel.length() > MAX_SPEED) playerVel.normalize().multiplyScalar(MAX_SPEED);
       }
     }
@@ -710,6 +748,28 @@ function animateXR() {
     const dt = Math.min((now - lastTime) / 1000, 0.1); 
     lastTime = now;
     updatePhysics(dt);
+    
+    // Atualiza os cubos das mãos com base nos controladores VR
+    if (xrControllers.length === 2) {
+      const leftCtrl = xrControllers[0];
+      const rightCtrl = xrControllers[1];
+
+      if (leftCtrl && leftCtrl.visible) {
+        const pos = new THREE.Vector3();
+        leftCtrl.getWorldPosition(pos);
+        leftHandCube.position.copy(pos);
+        virtualLeftHandPos.copy(pos);
+        isLeftHandTracked = true;
+      }
+      if (rightCtrl && rightCtrl.visible) {
+        const pos = new THREE.Vector3();
+        rightCtrl.getWorldPosition(pos);
+        rightHandCube.position.copy(pos);
+        virtualRightHandPos.copy(pos);
+        isRightHandTracked = true;
+      }
+    }
+
     updateVisuals(dt);
     if (myBodyGroup) myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
     renderer.render(scene, camera);
