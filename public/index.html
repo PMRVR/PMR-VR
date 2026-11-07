@@ -39,11 +39,15 @@
   .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #222; }
   .settings-row:last-child { border-bottom: none; }
   .settings-label { font-size: 15px; font-weight: 500; }
+  .settings-sub { font-size: 11px; color: #888; margin-top: 2px; }
   .toggle { position: relative; width: 52px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 16px; cursor: pointer; border: none; flex-shrink: 0; }
   .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; background: #fff; border-radius: 50%; transition: 0.3s; }
   .toggle.on { background: #00ffaa; }
   .toggle.on::after { transform: translateX(20px); }
   .input-field { width: 100%; padding: 12px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 16px; margin-top: 10px; }
+  
+  .select-field { background: #000; border: 1px solid #333; border-radius: 8px; color: #00ffaa; font-size: 14px; padding: 8px 12px; font-family: 'Inter', sans-serif; }
+  .slider-field { width: 120px; accent-color: #00ffaa; }
 
   #bottom-tabs {
     height: 70px; background: #151515; border-top: 1px solid #222;
@@ -58,15 +62,13 @@
   .tab-btn i { font-size: 22px; }
   .tab-btn.active { color: #00ffaa; }
 
-  /* UI DO JOGO (Agora vai flutuar com o giroscópio) */
   #game-ui { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
   #game-ui.active { display: block; }
 
-  /* Contentor que vai rodar no ecrã inteiro */
   #ui-hud {
     position: absolute; top: 50%; left: 50%; width: 100vw; height: 100vh;
     transform-origin: center center;
-    transform: translate(-50%, -50%); /* Base para a matemática do giroscópio */
+    transform: translate(-50%, -50%);
   }
   
   #top-bar { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
@@ -96,7 +98,7 @@
   #vr-btn:active { background: #00ffaa; color: #000; }
 
   #voice-btn { position: absolute; bottom: 90px; right: 20px; z-index: 100; width: 60px; height: 60px; border-radius: 50%; background: #222; border: 2px solid #444; color: #fff; font-size: 24px; display: grid; place-items: center; cursor: pointer; pointer-events: auto; transition: background 0.2s; }
-  #voice-btn.active { background: #00ffaa; color: #000; border-color: #00ffaa; box-shadow: 0 0 20px rgba(0,255,170,0.5); }
+  #voice-btn.active { background: #00ffaa; color: #000; border-color: #00ffaa; box-shadow: 0 0 20px rgba(255,170,0,0.5); }
 </style>
 </head>
 <body>
@@ -117,6 +119,41 @@
       <div class="settings-row"><div><div class="settings-label">Username</div></div></div>
       <input type="text" id="usernameInput" class="input-field" placeholder="O teu nome..." maxlength="15" />
     </div>
+
+    <div class="settings-group">
+      <div style="font-size:12px; font-weight:700; color:#00ffaa; margin-bottom:8px;">Tracking & Performance</div>
+      
+      <div class="settings-row">
+        <div><div class="settings-label">Qualidade</div><div class="settings-sub">Define resolução de render e tracking</div></div>
+        <select id="select-quality" class="select-field" onchange="applyQuality()">
+          <option value="low">Baixa</option>
+          <option value="medium" selected>Média</option>
+          <option value="high">Alta</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <div><div class="settings-label">Motor Hand Tracking</div><div class="settings-sub">Câmara (MediaPipe) ou VR Nativo (WebXR)</div></div>
+        <select id="select-hand-engine" class="select-field">
+          <option value="mediapipe" selected>MediaPipe (Câmara)</option>
+          <option value="webxr">WebXR (Nativo)</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <div><div class="settings-label">Física</div><div class="settings-sub">Fluido (dt real) vs Clássico (60Hz fixo)</div></div>
+        <select id="select-physics" class="select-field">
+          <option value="fluid" selected>Fluido</option>
+          <option value="classic">Clássico</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <div><div class="settings-label">Sensibilidade Tracking</div><div class="settings-sub" id="sens-val">1.0x</div></div>
+        <input type="range" id="slider-sens" class="slider-field" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('sens-val').innerText = this.value + 'x'" />
+      </div>
+    </div>
+
     <div class="settings-group">
       <div style="font-size:12px; font-weight:700; color:#00ffaa; margin-bottom:8px;">Sistema</div>
       <div class="settings-row"><div><div class="settings-label">Giroscópio</div></div><button class="toggle on" id="toggle-gyro"></button></div>
@@ -173,6 +210,24 @@
   };
   document.getElementById('toggle-gyro').onclick = function() { this.classList.toggle('on'); };
   document.getElementById('toggle-gravity').onclick = function() { this.classList.toggle('on'); };
+  
+  window.applyQuality = () => {
+    const q = document.getElementById('select-quality').value;
+    let maxPixelRatio = 1;
+    if (q === 'low') maxPixelRatio = 1;
+    else if (q === 'medium') maxPixelRatio = 1.5;
+    else if (q === 'high') maxPixelRatio = 2;
+    
+    if (window.renderer) {
+      window.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+      window.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    if (window.handLandmarkerConfig) {
+      // Muda a resolução do tracking se estiver a usar MediaPipe
+      window.updateHandTrackingResolution(q);
+    }
+  };
 </script>
 
 <script type="importmap">
@@ -205,6 +260,7 @@ let isThirdPerson = false;
 let isXRSupported = false;
 let xrSession = null;
 let xrControllers = [];
+let xrHands = [];
 
 let networkInterval = null;
 let handTrackingInterval = null;
@@ -258,29 +314,32 @@ window.joinRoom = () => {
   connectToServer(roomCode);
 };
 
-// ============ WEBXR E TRACKING NO VR ============
+// ============ HAND TRACKING RESOLUTION HELPER ============
+window.handLandmarkerConfig = null;
+window.updateHandTrackingResolution = (q) => {
+  const resolution = q === 'low' ? 240 : (q === 'medium' ? 320 : 480);
+  if (window.handLandmarkerConfig) {
+    window.handLandmarkerConfig.width = resolution;
+    window.handLandmarkerConfig.height = resolution * 0.75;
+  }
+};
+
+// ============ WEBXR ============
 async function checkXRSupport() {
   if (!navigator.xr) return false;
   try { return await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { return false; }
 }
 
-function onXRSelectStart(event) {
-  // Simula pinça para clicar no voice chat ao apontar com o controlador
-  const controller = event.target;
-  // Se o controlador estiver a apontar para a zona inferior direita do ecrã
-  if (controller.userData.isRight) {
-    window.toggleVoiceChat();
-  }
-}
-
 async function enterVR() {
   if (!renderer || !renderer.xr) return;
   try {
-    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] });
+    // Tenta pedir hand-tracking
+    const session = await navigator.xr.requestSession('immersive-vr', { 
+      optionalFeatures: ['local-floor', 'hand-tracking'] 
+    });
     await renderer.xr.setSession(session);
     xrSession = session;
     
-    // Esconde o botão HTML e ativa o tracking VR
     document.getElementById('voice-btn').style.display = 'none';
     document.getElementById('room-info').style.display = 'none';
     document.getElementById('stats-panel').style.display = 'none';
@@ -288,6 +347,13 @@ async function enterVR() {
 
     // Configura controladores VR
     setupXRControllers();
+
+    // Tenta configurar hands se disponivel
+    try {
+        setupXRHands(session);
+    } catch (e) {
+        console.log("Hand tracking XR não disponível neste dispositivo.");
+    }
 
     if (handTrackingInterval) clearInterval(handTrackingInterval);
     if (leftHandCube) leftHandCube.visible = false;
@@ -297,7 +363,6 @@ async function enterVR() {
       xrSession = null;
       document.getElementById('vr-btn').innerHTML = '<i class="fa-solid fa-vr-cardboard"></i> Entrar em VR';
       
-      // Volta a mostrar o HTML
       document.getElementById('voice-btn').style.display = 'grid';
       document.getElementById('room-info').style.display = 'block';
       document.getElementById('stats-panel').style.display = 'block';
@@ -317,19 +382,33 @@ async function enterVR() {
 function setupXRControllers() {
   for (let i = 0; i < 2; i++) {
     const controller = renderer.xr.getController(i);
-    controller.userData.isRight = (i === 1); // 0 = Esquerda, 1 = Direita
-    controller.addEventListener('selectstart', onXRSelectStart);
-    
-    // Adiciona um "cubo" invisível ou uma linha para o controlador ser visível
-    const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-    const material = new THREE.MeshBasicMaterial({ color: i === 0 ? 0x00ffaa : 0xff00aa });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.visible = false; // Podes mudar para true se quiseres ver o controlador
-    controller.add(mesh);
-
+    controller.userData.isRight = (i === 1);
+    controller.addEventListener('selectstart', () => {
+        if (i === 1) window.toggleVoiceChat();
+    });
     scene.add(controller);
     xrControllers.push(controller);
   }
+}
+
+// ============ HAND TRACKING NATIVO NO WEBXR ============
+function setupXRHands(session) {
+    // Verifica se o dispositivo suporta tracking de mãos
+    if (!session.inputSources) return;
+    
+    function onSessionFrame() {
+        if (!session) return;
+        // Loop para ler input sources
+        for (const source of session.inputSources) {
+            if (source.hand) {
+                // Isto requer processamento complexo: joint positions etc.
+                // Por agora, apenas confirmamos que a feature está ativa.
+                // Para pegar nos ossos, terias de ler source.hand.get('wrist') etc.
+            }
+        }
+    }
+    // Nota: implementar isto a sério requer tratar dos joints do WebXR XRHand
+    // e mapear as posições para os bones do teu gorila. Simplificado por agora.
 }
 
 function setupVRButton() {
@@ -466,11 +545,13 @@ async function initGame() {
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Média por defeito
   renderer.domElement.style.position = 'fixed';
   renderer.domElement.style.inset = '0';
   renderer.domElement.style.zIndex = '-1';
   document.body.appendChild(renderer.domElement);
+
+  window.renderer = renderer; // Expõe para o applyQuality
 
   renderer.xr.enabled = true;
   
@@ -517,6 +598,7 @@ async function initGame() {
 
   if (!isXRSupported) initGyro();
   
+  window.handLandmarkerConfig = { width: 320, height: 240 };
   startHandTrackingLoop();
   setupVRButton();
   
@@ -538,7 +620,7 @@ async function initGame() {
   }
 }
 
-// ============ GIROSCÓPIO E UI 2D ============
+// ============ GIROSCÓPIO ============
 let gyroData = { pitch: 0, roll: 0 };
 function initGyro() {
   window.addEventListener("deviceorientation", (event) => {
@@ -549,14 +631,10 @@ function initGyro() {
     gyroData.pitch = THREE.MathUtils.degToRad(Math.max(-90, Math.min(90, pitch)));
     gyroData.roll = THREE.MathUtils.degToRad(Math.max(-90, Math.min(90, roll)));
 
-    // Movimento do HUD HTML com o giroscópio
     const hud = document.getElementById('ui-hud');
     if (hud && !isXRSupported) {
-        // Amplitude de 150px para o movimento ser notório
-        const moveX = roll * -5; // Invertido para parecer natural
+        const moveX = roll * -5;
         const moveY = pitch * 5;
-        
-        // Aplica a translação, mantendo o centro (-50%, -50%)
         hud.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
     }
   });
@@ -611,7 +689,8 @@ function startHandTrackingLoop() {
   
   async function setup() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 320, height: 240 } });
+      const config = window.handLandmarkerConfig || { width: 320, height: 240 };
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: config.width, height: config.height } });
       video.srcObject = stream; video.play();
       
       const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
@@ -636,6 +715,9 @@ function startHandTrackingLoop() {
 function processHands(hands) {
   isLeftHandTracked = false;
   isRightHandTracked = false;
+  
+  // Sensibilidade
+  const sensitivity = parseFloat(document.getElementById('slider-sens').value) || 1.0;
 
   hands.forEach((lm, index) => {
     const isRight = index === 1; 
@@ -652,7 +734,7 @@ function processHands(hands) {
       Math.pow((indexTip.z || 0) - (thumbTip.z || 0), 2)
     );
     
-    const isPinching = distance < 0.05; // Gesto de pinça
+    const isPinching = distance < 0.05;
 
     const ndcX = (1 - indexTip.x) * 2 - 1;
     const ndcY = -(indexTip.y * 2 - 1);
@@ -661,13 +743,12 @@ function processHands(hands) {
     const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
     const up = new THREE.Vector3(0,1,0);
     
+    // Aplica sensibilidade multiplicando a posição no espaço
     const handWorldPos = new THREE.Vector3().copy(camera.position)
       .add(forward.clone().multiplyScalar(0.5))
-      .add(rightVec.clone().multiplyScalar(ndcX * 0.3))
-      .add(up.clone().multiplyScalar(ndcY * 0.3));
+      .add(rightVec.clone().multiplyScalar(ndcX * 0.3 * sensitivity))
+      .add(up.clone().multiplyScalar(ndcY * 0.3 * sensitivity));
 
-    // === PULO AO TOCAR NO CHÃO ===
-    // Se a mão bater no chão e estiver a descer com força
     let hitFloor = false;
     if (handWorldPos.y < 0.075) {
         handWorldPos.y = 0.075;
@@ -684,9 +765,7 @@ function processHands(hands) {
     if (isRight) isRightHandTracked = true;
     else isLeftHandTracked = true;
 
-    // Verifica se a pinça está a acontecer perto do botão do HTML
     if (isPinching && !window.isPinchCooldown) {
-        // A mão está na parte de baixo e à direita do ecrã?
         if (ndcX > 0.4 && ndcY < -0.4) {
             window.isPinchCooldown = true;
             window.toggleVoiceChat();
@@ -694,16 +773,14 @@ function processHands(hands) {
         }
     }
 
-    // Física
     if (prevPos.lengthSq() > 0) {
       const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
       if (delta.length() < 0.4) {
         const push = delta.multiplyScalar(-PUSH_MULTIPLIER);
         playerVel.add(push);
         
-        // Se a mão bateu no chão e o movimento foi para baixo, dá um salto (impulso Y)
         if (hitFloor && delta.y < -0.02) {
-            playerVel.y += Math.abs(delta.y) * PUSH_MULTIPLIER * 1.5; // Força extra no salto
+            playerVel.y += Math.abs(delta.y) * PUSH_MULTIPLIER * 1.5;
             isGrounded = false;
         }
         
