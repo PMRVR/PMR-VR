@@ -205,7 +205,6 @@ let isInitialized = false;
 let renderer, scene, camera;
 let gyroController = null;
 
-// Sincronização de Rede (Throttle)
 let networkInterval = null;
 
 // Física
@@ -221,6 +220,8 @@ let isGrounded = false;
 // Modelos 3D e Natal
 let myBodyGroup;
 let gorilaModel = null;
+let leftHandBone = null;
+let rightHandBone = null;
 let snowParticles = null;
 const colliders = [];
 
@@ -228,7 +229,12 @@ const colliders = [];
 let handLandmarker = null, lastVideoTime = -1;
 const prevLeftPos = new THREE.Vector3();
 const prevRightPos = new THREE.Vector3();
-let leftHandMesh, rightHandMesh;
+
+// Posições virtuais das mãos
+const virtualLeftHandPos = new THREE.Vector3();
+const virtualRightHandPos = new THREE.Vector3();
+let isLeftHandTracked = false;
+let isRightHandTracked = false;
 
 // Voz
 let localStream = null;
@@ -297,7 +303,6 @@ function connectToServer(code) {
     }
   });
   
-  // WebRTC Signaling (Voice)
   socket.on('webrtc-offer', async (data) => {
     const pc = createPeerConnection(data.sender, false);
     await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -314,7 +319,6 @@ function connectToServer(code) {
     if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
   });
 
-  // Handlers de Moderação
   socket.on('ownerStatus', (isOwner) => { console.log('És o dono da sala:', isOwner); });
   socket.on('newOwner', (id) => { console.log('Novo dono da sala:', id); });
   socket.on('kickedError', (msg) => { alert(msg); window.location.reload(); });
@@ -350,7 +354,7 @@ function initGame() {
   floor.position.y = -0.5; scene.add(floor);
   colliders.push(new THREE.Box3().setFromObject(floor));
 
-  // Caixas de Gelo (Azul claro transparente)
+  // Caixas de Gelo
   const boxMat = new THREE.MeshBasicMaterial({ color: 0xadd8e6 });
   [{ x: 5, z: -5, size: 2 }, { x: -5, z: -8, size: 3 }, { x: 0, z: -12, size: 4 }].forEach(b => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size, b.size, b.size), boxMat);
@@ -368,24 +372,25 @@ function initGame() {
   const loader = new GLTFLoader();
   loader.load('/gorila.glb', (gltf) => {
     gorilaModel = gltf.scene;
-    // Ajusta a escala se necessário
-    // gorilaModel.scale.set(0.5, 0.5, 0.5); 
     myBodyGroup.add(gorilaModel);
-    console.log("Gorila carregado com sucesso!");
+    
+    // Procura os ossos das mãos que tu renomeaste no Viewer
+    gorilaModel.traverse((child) => {
+      if (child.isBone) {
+        if (child.name === 'LeftHand') leftHandBone = child;
+        if (child.name === 'RightHand') rightHandBone = child;
+      }
+    });
+    
+    if (!leftHandBone) console.warn("Aviso: Osso 'LeftHand' não encontrado no GLB.");
+    if (!rightHandBone) console.warn("Aviso: Osso 'RightHand' não encontrado no GLB.");
+
+    console.log("Gorila carregado!");
   }, undefined, (err) => {
-    console.warn("Falha ao carregar gorila.glb, a usar fallback.", err);
+    console.warn("Falha ao carregar gorila.glb.", err);
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
     head.position.y = 0.4; myBodyGroup.add(head);
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x666666 }));
-    body.position.y = -0.4; myBodyGroup.add(body);
   });
-
-  // Mãos
-  const handGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-  leftHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
-  rightHandMesh = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
-  scene.add(leftHandMesh); 
-  scene.add(rightHandMesh);
 
   gyroController = new GyroscopeController(camera, { sensitivity: 1 });
   gyroController.start().catch(console.warn);
@@ -415,12 +420,9 @@ function createSnow() {
   const velocities = [];
 
   for (let i = 0; i < particleCount; i++) {
-    // Espalha a neve num raio de 30 unidades à volta do jogador
     positions[i * 3] = (Math.random() - 0.5) * 60;
     positions[i * 3 + 1] = Math.random() * 30;
     positions[i * 3 + 2] = (Math.random() - 0.5) * 60;
-    
-    // Velocidade de queda aleatória (entre 1 e 3)
     velocities.push({
       y: Math.random() * 2 + 1,
       x: (Math.random() - 0.5) * 0.5,
@@ -429,13 +431,8 @@ function createSnow() {
   }
 
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  
   const material = new THREE.PointsMaterial({
-    color: 0xffffff,
-    size: 0.15,
-    transparent: true,
-    opacity: 0.8,
-    sizeAttenuation: true
+    color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8, sizeAttenuation: true
   });
 
   snowParticles = new THREE.Points(geometry, material);
@@ -449,11 +446,10 @@ function updateSnow(dt) {
   const velocities = snowParticles.userData.velocities;
   
   for (let i = 0; i < velocities.length; i++) {
-    positions[i * 3 + 1] -= velocities[i].y * dt; // Cai
-    positions[i * 3] += velocities[i].x * dt;     // Balança X
-    positions[i * 3 + 2] += velocities[i].z * dt; // Balança Z
+    positions[i * 3 + 1] -= velocities[i].y * dt; 
+    positions[i * 3] += velocities[i].x * dt;     
+    positions[i * 3 + 2] += velocities[i].z * dt; 
 
-    // Se cair abaixo do chão, volta ao topo
     if (positions[i * 3 + 1] < -1) {
       positions[i * 3 + 1] = 30;
       positions[i * 3] = playerPos.x + (Math.random() - 0.5) * 60;
@@ -461,8 +457,6 @@ function updateSnow(dt) {
     }
   }
   snowParticles.geometry.attributes.position.needsUpdate = true;
-  
-  // A caixa de neve segue o jogador para parecer infinito
   snowParticles.position.x = playerPos.x;
   snowParticles.position.z = playerPos.z;
 }
@@ -525,40 +519,38 @@ function detectHandsLoop(stream) {
   loop();
 }
 
+// Pega a posição da mão no mundo e calcula física
 function processHands(hands) {
-  leftHandMesh.visible = false; rightHandMesh.visible = false;
+  isLeftHandTracked = false;
+  isRightHandTracked = false;
+
   hands.forEach((lm, index) => {
+    // O MediaPipe assume index 0 = Left, index 1 = Right (espelhado na câmara frontal, mas nós invertemos no X)
     const isRight = index === 1; 
-    const handMesh = isRight ? rightHandMesh : leftHandMesh;
     const prevPos = isRight ? prevRightPos : prevLeftPos;
-    handMesh.visible = true;
+    const virtualPos = isRight ? virtualRightHandPos : virtualLeftHandPos;
 
     const indexTip = lm[8];
     const wrist = lm[0];
     const middleFinger = lm[9];
 
-    // Rotação da mão
-    const dx = middleFinger.x - wrist.x;
-    const dy = middleFinger.y - wrist.y;
-    const dz = (middleFinger.z || 0) - (wrist.z || 0);
-    const rotY = Math.atan2(dx, dz);
-    const rotX = Math.atan2(-dy, Math.sqrt(dx*dx + dz*dz));
-    handMesh.rotation.x += (rotX - handMesh.rotation.x) * 0.5;
-    handMesh.rotation.y += (rotY - handMesh.rotation.y) * 0.5;
-
-    // Posição no mundo
-    const ndcX = (1 - indexTip.x) * 2 - 1;
+    // Posição no mundo relativa à câmara
+    const ndcX = (1 - indexTip.x) * 2 - 1; // Invertido porque a câmara está de frente para nós
     const ndcY = -(indexTip.y * 2 - 1);
+    
     const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
-    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+    const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
     const up = new THREE.Vector3(0,1,0);
     
+    // Distância da mão à câmara (0.5 metros à frente)
     const handWorldPos = new THREE.Vector3().copy(camera.position)
       .add(forward.clone().multiplyScalar(0.5))
-      .add(right.clone().multiplyScalar(ndcX * 0.3))
+      .add(rightVec.clone().multiplyScalar(ndcX * 0.3))
       .add(up.clone().multiplyScalar(ndcY * 0.3));
 
-    handMesh.position.copy(handWorldPos);
+    virtualPos.copy(handWorldPos);
+    if (isRight) isRightHandTracked = true;
+    else isLeftHandTracked = true;
 
     // Física de empurrão
     if (prevPos.lengthSq() > 0) {
@@ -573,6 +565,23 @@ function processHands(hands) {
     }
     prevPos.copy(handWorldPos);
   });
+}
+
+// ============ INVERSE KINEMATICS SIMPLES ============
+// Faz o osso da mão do modelo apontar para a posição virtual da mão
+function applyIK(bone, targetWorldPos, isTracked) {
+  if (!bone || !isTracked) return;
+
+  // Converte a posição alvo de World para Local (relativa ao pai do osso)
+  const localTarget = bone.parent.worldToLocal(targetWorldPos.clone());
+  
+  // Fazer o osso olhar para o alvo (LookAt)
+  // Nota: O eixo Y costuma ser o "para cima" do osso, e Z o comprimento.
+  // Pode ser preciso ajustar os eixos dependendo de como o modelo foi exportado.
+  bone.lookAt(localTarget);
+  
+  // Opcional: Rodar o pulso para ficar natural
+  // bone.rotateX(Math.PI / 2); 
 }
 
 // ============ LOOP A 60FPS ============
@@ -607,17 +616,19 @@ function animate() {
     if (myBodyGroup) {
       myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
       myBodyGroup.rotation.y = camera.rotation.y; 
+
+      // Aplica o IK aos braços do gorila baseado nas mãos reais
+      if (gorilaModel) {
+        applyIK(leftHandBone, virtualLeftHandPos, isLeftHandTracked);
+        applyIK(rightHandBone, virtualRightHandPos, isRightHandTracked);
+      }
     }
 
-    // Atualiza Neve
     updateSnow(dt);
 
-    // Atualiza jogadores remotos (LERP)
     Object.keys(remotePlayers).forEach(id => {
       const rp = remotePlayers[id];
-      if (rp.targetPosition) {
-        rp.group.position.lerp(rp.targetPosition, 0.2);
-      }
+      if (rp.targetPosition) rp.group.position.lerp(rp.targetPosition, 0.2);
       if (rp.targetRotY !== undefined) {
         let diff = rp.targetRotY - rp.group.rotation.y;
         while (diff > Math.PI) diff -= Math.PI * 2;
