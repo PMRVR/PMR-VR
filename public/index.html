@@ -58,7 +58,6 @@
   .tab-btn i { font-size: 22px; }
   .tab-btn.active { color: #00ffaa; }
 
-  /* UI DO JOGO */
   #game-ui { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
   #game-ui.active { display: block; }
   
@@ -69,7 +68,6 @@
   #pause-btn { background: rgba(0,0,0,0.7); border: 1px solid #444; width: 44px; height: 44px; border-radius: 10px; color: #fff; font-size: 20px; cursor: pointer; pointer-events: auto; display: grid; place-items: center; }
   #pause-btn:active { background: #333; }
 
-  /* STATS FPS E PING */
   #stats-panel { position: absolute; top: 80px; right: 20px; background: rgba(0,0,0,0.7); border: 1px solid #444; padding: 8px 12px; border-radius: 10px; font-family: monospace; font-size: 12px; color: #00ffaa; text-align: right; line-height: 1.4; }
 
   #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); opacity: 0.5; }
@@ -79,7 +77,6 @@
   #voice-btn { position: fixed; bottom: 90px; right: 20px; z-index: 100; width: 60px; height: 60px; border-radius: 50%; background: #222; border: 2px solid #444; color: #fff; font-size: 24px; display: grid; place-items: center; cursor: pointer; pointer-events: auto; transition: 0.2s;}
   #voice-btn.active { background: #00ffaa; color: #000; border-color: #00ffaa; box-shadow: 0 0 20px rgba(0,255,170,0.5); }
 
-  /* MENU DE PAUSA */
   #pause-menu { position: fixed; inset: 0; z-index: 200; background: rgba(15,15,15,0.9); backdrop-filter: blur(5px); display: none; flex-direction: column; align-items: center; justify-content: center; }
   #pause-menu.active { display: flex; }
   #pause-menu h2 { font-size: 32px; font-weight: 800; color: #00ffaa; margin-bottom: 30px; }
@@ -87,6 +84,12 @@
   .pause-btn.primary { background: #00ffaa; color: #000; border-color: #00ffaa; }
   .pause-btn:hover { background: #333; }
   .pause-btn.primary:hover { background: #00cc88; }
+
+  /* BOTÃO VR */
+  #vr-btn-container { position: fixed; bottom: 90px; left: 20px; z-index: 100; pointer-events: auto; }
+  #vr-btn { background: #222; border: 2px solid #00ffaa; color: #00ffaa; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; display: none; align-items: center; gap: 8px; }
+  #vr-btn.visible { display: flex; }
+  #vr-btn:active { background: #00ffaa; color: #000; }
 </style>
 </head>
 <body>
@@ -96,8 +99,8 @@
     <h1>Blocky Tag</h1>
     <p>❄️ Edição de Inverno ❄️</p>
     <input type="text" id="join-code-input" placeholder="Código da Sala (ex: 1234)" />
-    <button class="menu-btn" onclick="createRoom()"><i class="fa-solid fa-plus"></i> Criar Sala Pública</button>
-    <button class="menu-btn secondary" onclick="joinRoom()"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar com Código</button>
+    <button class="menu-btn" onclick="window.createRoom()"><i class="fa-solid fa-plus"></i> Criar Sala Pública</button>
+    <button class="menu-btn secondary" onclick="window.joinRoom()"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar com Código</button>
   </div>
 
   <div id="tab-settings" class="tab-content">
@@ -113,21 +116,21 @@
       <div style="font-size:12px; font-weight:700; color:#00ffaa; margin-bottom:8px;">Sistema</div>
       <div class="settings-row">
         <div><div class="settings-label">Giroscópio</div></div>
-        <button class="toggle on" id="toggle-gyro" onclick="this.classList.toggle('on')"></button>
+        <button class="toggle on" id="toggle-gyro"></button>
       </div>
       <div class="settings-row">
         <div><div class="settings-label">Modo de Voo</div></div>
-        <button class="toggle" id="toggle-gravity" onclick="this.classList.toggle('on')"></button>
+        <button class="toggle" id="toggle-gravity"></button>
       </div>
     </div>
   </div>
 </div>
 
 <div id="bottom-tabs">
-  <button class="tab-btn active" data-target="tab-online" onclick="switchTab('tab-online', this)">
+  <button class="tab-btn active" onclick="switchTab('tab-online', this)">
     <i class="fa-solid fa-gamepad"></i><span>Jogar Online</span>
   </button>
-  <button class="tab-btn" data-target="tab-settings" onclick="switchTab('tab-settings', this)">
+  <button class="tab-btn" onclick="switchTab('tab-settings', this)">
     <i class="fa-solid fa-gear"></i><span>Configurações</span>
   </button>
 </div>
@@ -135,7 +138,7 @@
 <div id="game-ui">
   <div id="top-bar">
     <div id="room-info">Sala: <span id="room-code-display">------</span></div>
-    <button id="pause-btn" onclick="togglePause()"><i class="fa-solid fa-bars"></i></button>
+    <button id="pause-btn"><i class="fa-solid fa-bars"></i></button>
   </div>
   
   <div id="stats-panel">
@@ -144,16 +147,38 @@
   </div>
 
   <div id="crosshair"></div>
-  <button id="voice-btn" onclick="toggleVoiceChat()"><i class="fa-solid fa-microphone-slash"></i></button>
+  <button id="voice-btn"><i class="fa-solid fa-microphone-slash"></i></button>
+</div>
+
+<div id="vr-btn-container">
+  <button id="vr-btn"><i class="fa-solid fa-vr-cardboard"></i> Entrar em VR</button>
 </div>
 
 <div id="pause-menu">
   <h2>Pausa</h2>
-  <button class="pause-btn primary" onclick="togglePause()"><i class="fa-solid fa-play"></i> Continuar</button>
-  <button class="pause-btn" onclick="toggleThirdPerson()"><i class="fa-solid fa-camera"></i> <span id="camera-mode-text">Mudar para 3ª Pessoa</span></button>
-  <button class="pause-btn" onclick="togglePause(); switchTab('tab-settings', document.querySelectorAll('.tab-btn')[1]);"><i class="fa-solid fa-gear"></i> Opções</button>
-  <button class="pause-btn" style="color: #ff4d4d;" onclick="leaveRoom()"><i class="fa-solid fa-door-open"></i> Sair</button>
+  <button class="pause-btn primary" id="btn-resume"><i class="fa-solid fa-play"></i> Continuar</button>
+  <button class="pause-btn" id="btn-camera"><i class="fa-solid fa-camera"></i> <span id="camera-mode-text">Mudar para 3ª Pessoa</span></button>
+  <button class="pause-btn" id="btn-options"><i class="fa-solid fa-gear"></i> Opções</button>
+  <button class="pause-btn" style="color: #ff4d4d;" id="btn-leave"><i class="fa-solid fa-door-open"></i> Sair</button>
 </div>
+
+<script>
+  window.switchTab = (targetId, btnElement) => {
+    const currentTab = document.querySelector('.tab-content.active');
+    const nextTab = document.getElementById(targetId);
+    if (currentTab === nextTab) return;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
+    nextTab.classList.add('active');
+    nextTab.classList.remove('previous');
+    currentTab.classList.remove('active');
+    currentTab.classList.add('previous');
+    setTimeout(() => currentTab.classList.remove('previous'), 300);
+  };
+
+  document.getElementById('toggle-gyro').onclick = function() { this.classList.toggle('on'); };
+  document.getElementById('toggle-gravity').onclick = function() { this.classList.toggle('on'); };
+</script>
 
 <script type="importmap">
 {
@@ -168,23 +193,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js'; 
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
 import { io } from "socket.io-client";
-
-// ============ ABAS ============
-window.switchTab = (targetId, btnElement) => {
-  const currentTab = document.querySelector('.tab-content.active');
-  const nextTab = document.getElementById(targetId);
-  if (currentTab === nextTab) return;
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  btnElement.classList.add('active');
-  nextTab.classList.add('active');
-  nextTab.classList.remove('previous');
-  currentTab.classList.remove('active');
-  currentTab.classList.add('previous');
-  setTimeout(() => currentTab.classList.remove('previous'), 300);
-};
 
 // ============ ESTADO GLOBAL ============
 let socket = null;
@@ -197,11 +207,11 @@ let isPaused = false;
 let isInitialized = false;
 let renderer, scene, camera;
 let isThirdPerson = false;
+let isXRSupported = false;
+let xrSession = null;
 
 let networkInterval = null;
-let gyroControls = null; 
 
-// Física e Colisão
 const playerPos = new THREE.Vector3(0, 1.6, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
 const GRAVITY = 28;           
@@ -212,14 +222,12 @@ const GROUND_FRICTION = 0.75;
 let isGrounded = false;
 const colliders = []; 
 
-// Modelos 3D e Natal
 let myBodyGroup;
 let gorilaModel = null;
 let leftHandBone = null;
 let rightHandBone = null;
 let snowParticles = null;
 
-// Hand Tracking e Cubos
 let handLandmarker = null, lastVideoTime = -1;
 let leftHandCube, rightHandCube;
 const prevLeftPos = new THREE.Vector3();
@@ -229,7 +237,6 @@ const virtualRightHandPos = new THREE.Vector3();
 let isLeftHandTracked = false;
 let isRightHandTracked = false;
 
-// Voz
 let localStream = null;
 let isVoiceActive = false;
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
@@ -237,36 +244,14 @@ const peerConnections = {};
 
 document.getElementById('usernameInput').value = myUsername;
 
-// ============ MENU DE PAUSA E CÂMARA ============
-window.togglePause = () => {
-  isPaused = !isPaused;
-  const menu = document.getElementById('pause-menu');
-  if (isPaused) {
-    menu.classList.add('active');
-    if(gyroControls) gyroControls.enabled = false;
-  } else {
-    menu.classList.remove('active');
-    if(gyroControls) gyroControls.enabled = true;
-  }
-};
-
-window.toggleThirdPerson = () => {
-  isThirdPerson = !isThirdPerson;
-  document.getElementById('camera-mode-text').innerText = isThirdPerson ? "Mudar para 1ª Pessoa" : "Mudar para 3ª Pessoa";
-  togglePause(); 
-};
-
-window.leaveRoom = () => {
-  window.location.reload(); 
-};
-
-// ============ SOCKET ============
+// ============ BOTÕES ============
 window.createRoom = () => {
   myUsername = document.getElementById('usernameInput').value.trim() || "Jogador";
   localStorage.setItem('pmr_username', myUsername);
   roomCode = Math.floor(1000 + Math.random() * 9000).toString();
   connectToServer(roomCode);
 };
+
 window.joinRoom = () => {
   myUsername = document.getElementById('usernameInput').value.trim() || "Jogador";
   localStorage.setItem('pmr_username', myUsername);
@@ -276,6 +261,108 @@ window.joinRoom = () => {
   connectToServer(roomCode);
 };
 
+// ============ WEBXR ============
+async function checkXRSupport() {
+  if (!navigator.xr) {
+    console.log("WebXR não disponível (navigator.xr é undefined). Vais usar giroscópio.");
+    return false;
+  }
+  try {
+    const supported = await navigator.xr.isSessionSupported('immersive-vr');
+    console.log("WebXR immersive-vr suportado:", supported);
+    return supported;
+  } catch (e) {
+    console.warn("Erro ao verificar WebXR:", e);
+    return false;
+  }
+}
+
+async function enterVR() {
+  if (!renderer || !renderer.xr) return;
+  
+  try {
+    const session = await navigator.xr.requestSession('immersive-vr', {
+      optionalFeatures: ['local-floor']
+    });
+    
+    await renderer.xr.setSession(session);
+    xrSession = session;
+    
+    session.addEventListener('end', () => {
+      xrSession = null;
+      document.getElementById('vr-btn').innerHTML = '<i class="fa-solid fa-vr-cardboard"></i> Entrar em VR';
+    });
+    
+    document.getElementById('vr-btn').innerHTML = '<i class="fa-solid fa-vr-cardboard"></i> Sair de VR';
+    
+  } catch (e) {
+    console.error("Erro ao entrar em VR:", e);
+    alert("Não foi possível entrar em VR: " + e.message);
+  }
+}
+
+function setupVRButton() {
+  const vrBtn = document.getElementById('vr-btn');
+  if (isXRSupported) {
+    vrBtn.classList.add('visible');
+    vrBtn.onclick = () => {
+      if (xrSession) {
+        xrSession.end();
+      } else {
+        enterVR();
+      }
+    };
+  }
+}
+
+// ============ MENU DE PAUSA ============
+document.getElementById('pause-btn').onclick = () => {
+  isPaused = !isPaused;
+  document.getElementById('pause-menu').classList.toggle('active', isPaused);
+};
+
+document.getElementById('btn-resume').onclick = () => {
+  isPaused = false;
+  document.getElementById('pause-menu').classList.remove('active');
+};
+
+document.getElementById('btn-camera').onclick = () => {
+  isThirdPerson = !isThirdPerson;
+  document.getElementById('camera-mode-text').innerText = isThirdPerson ? "Mudar para 1ª Pessoa" : "Mudar para 3ª Pessoa";
+  isPaused = false;
+  document.getElementById('pause-menu').classList.remove('active');
+};
+
+document.getElementById('btn-options').onclick = () => {
+  isPaused = false;
+  document.getElementById('pause-menu').classList.remove('active');
+  document.querySelectorAll('.tab-btn')[1].click();
+};
+
+document.getElementById('btn-leave').onclick = () => {
+  window.location.reload();
+};
+
+document.getElementById('voice-btn').onclick = async () => {
+  const btn = document.getElementById('voice-btn');
+  if (!isVoiceActive) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      isVoiceActive = true;
+      btn.classList.add('active');
+      btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+      for (let id in remotePlayers) createPeerConnection(id, true);
+    } catch (e) { alert("Microfone: " + e.message); }
+  } else {
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    isVoiceActive = false;
+    btn.classList.remove('active');
+    btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+    for (let id in peerConnections) { peerConnections[id].close(); delete peerConnections[id]; }
+  }
+};
+
+// ============ SOCKET ============
 function connectToServer(code) {
   const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
   socket = io(serverUrl);
@@ -299,24 +386,17 @@ function connectToServer(code) {
   
   socket.on('newPlayer', (player) => addRemotePlayer(player.id, player));
   
-  // === OTIMIZAÇÃO: Recebe todos os movimentos de uma vez (Batch Update) ===
   socket.on('batchUpdate', (updates) => {
     updates.forEach(data => {
       if (remotePlayers[data.id]) {
-        if (data.position) {
-          remotePlayers[data.id].targetPosition.set(data.position.x, data.position.y, data.position.z);
-        }
-        if (data.rotY !== undefined) {
-          remotePlayers[data.id].targetRotY = data.rotY;
-        }
+        if (data.position) remotePlayers[data.id].targetPosition.set(data.position.x, data.position.y, data.position.z);
+        if (data.rotY !== undefined) remotePlayers[data.id].targetRotY = data.rotY;
       }
     });
   });
 
-  // === FPS E PING ===
   socket.on('serverStats', (data) => {
     document.getElementById('stat-fps').innerText = data.fps;
-    // O socket.io calcula o ping internamente
     const ping = socket.io.engine.ping || 0;
     document.getElementById('stat-ping').innerText = ping;
   });
@@ -345,15 +425,16 @@ function connectToServer(code) {
     if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
   });
 
-  socket.on('ownerStatus', (isOwner) => { console.log('És o dono da sala:', isOwner); });
-  socket.on('newOwner', (id) => { console.log('Novo dono da sala:', id); });
   socket.on('kickedError', (msg) => { alert(msg); window.location.reload(); });
   socket.on('bannedError', (msg) => { alert(msg); window.location.reload(); });
 }
 
-// ============ JOGO & NATAL ============
-function initGame() {
+// ============ JOGO ============
+async function initGame() {
   if (isInitialized) return;
+  
+  // Verifica WebXR ANTES de criar o renderer
+  isXRSupported = await checkXRSupport();
   
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa4cce6); 
@@ -367,18 +448,19 @@ function initGame() {
   renderer.domElement.style.inset = '0';
   renderer.domElement.style.zIndex = '-1';
   document.body.appendChild(renderer.domElement);
+
+  // ATIVA WEBXR NO RENDERER
+  renderer.xr.enabled = true;
   
   scene.add(new THREE.HemisphereLight(0xffffff, 0xcccccc, 1.2));
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(10, 20, 10);
   scene.add(dirLight);
 
-  // Chão de Neve (Branco) - COM COLISÃO
   const floor = new THREE.Mesh(new THREE.BoxGeometry(100, 1, 100), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   floor.position.y = -0.5; scene.add(floor);
   colliders.push(new THREE.Box3().setFromObject(floor));
 
-  // Caixas de Gelo - COM COLISÃO
   const boxMat = new THREE.MeshBasicMaterial({ color: 0xadd8e6 });
   [{ x: 5, z: -5, size: 2 }, { x: -5, z: -8, size: 3 }, { x: 0, z: -12, size: 4 }].forEach(b => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size, b.size, b.size), boxMat);
@@ -388,7 +470,6 @@ function initGame() {
 
   createSnow();
 
-  // Carregar Gorila
   myBodyGroup = new THREE.Group();
   scene.add(myBodyGroup);
   
@@ -396,33 +477,31 @@ function initGame() {
   loader.load('/gorila.glb', (gltf) => {
     gorilaModel = gltf.scene;
     myBodyGroup.add(gorilaModel);
-    
     gorilaModel.traverse((child) => {
       if (child.isBone) {
         if (child.name === 'LeftHand') leftHandBone = child;
         if (child.name === 'RightHand') rightHandBone = child;
       }
     });
-    console.log("Gorila carregado!");
   }, undefined, (err) => {
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
     head.position.y = 0.4; myBodyGroup.add(head);
   });
 
-  // Cubos das Mãos (Visuais)
   const handGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
   leftHandCube = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
   rightHandCube = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
   scene.add(leftHandCube); 
   scene.add(rightHandCube);
 
-  // GIROSCÓPIO OFICIAL
-  gyroControls = new DeviceOrientationControls(camera);
-  gyroControls.connect();
-
-  initHandTracking();
+  // Inicia Giroscópio (fallback se não houver XR)
+  if (!isXRSupported) {
+    initGyro();
+  }
   
-  // Throttle de Rede a 20Hz (envia para o server)
+  initHandTracking();
+  setupVRButton();
+  
   if (networkInterval) clearInterval(networkInterval);
   networkInterval = setInterval(() => {
     if (socket && isMultiplayer && roomCode && gameStarted && !isPaused) {
@@ -433,7 +512,26 @@ function initGame() {
 
   isInitialized = true;
   gameStarted = true;
-  animate();
+  
+  // SE WEBXR ESTIVER ATIVO, USA setAnimationLoop
+  // SENÃO, USA requestAnimationFrame normal
+  if (renderer.xr.enabled && isXRSupported) {
+    renderer.setAnimationLoop(animateXR);
+  } else {
+    animate();
+  }
+}
+
+// ============ GIROSCÓPIO MANUAL ============
+let gyroData = { pitch: 0, roll: 0 };
+function initGyro() {
+  window.addEventListener("deviceorientation", (event) => {
+    let pitch = event.beta;
+    let roll = event.gamma;
+    if (pitch === null || roll === null) return;
+    gyroData.pitch = THREE.MathUtils.degToRad(Math.max(-90, Math.min(90, pitch)));
+    gyroData.roll = THREE.MathUtils.degToRad(Math.max(-90, Math.min(90, roll)));
+  });
 }
 
 // ============ SISTEMA DE NEVE ============
@@ -452,7 +550,6 @@ function createSnow() {
 
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8, sizeAttenuation: true });
-
   snowParticles = new THREE.Points(geometry, material);
   snowParticles.userData.velocities = velocities;
   scene.add(snowParticles);
@@ -479,26 +576,7 @@ function updateSnow(dt) {
   snowParticles.position.z = playerPos.z;
 }
 
-// ============ VOICE ============
-window.toggleVoiceChat = async () => {
-  const btn = document.getElementById('voice-btn');
-  if (!isVoiceActive) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      isVoiceActive = true;
-      btn.classList.add('active');
-      btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
-      for (let id in remotePlayers) createPeerConnection(id, true);
-    } catch (e) { alert("Microfone: " + e.message); }
-  } else {
-    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    isVoiceActive = false;
-    btn.classList.remove('active');
-    btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
-    for (let id in peerConnections) { peerConnections[id].close(); delete peerConnections[id]; }
-  }
-};
-
+// ============ PEER CONNECTION ============
 function createPeerConnection(targetId, isInitiator) {
   if (peerConnections[targetId]) return peerConnections[targetId];
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -560,10 +638,8 @@ function processHands(hands) {
       .add(rightVec.clone().multiplyScalar(ndcX * 0.3))
       .add(up.clone().multiplyScalar(ndcY * 0.3));
 
-    // COLISÃO DO CUBO COM O CHÃO
     if (handWorldPos.y < 0.075) handWorldPos.y = 0.075;
     
-    // COLISÃO DO CUBO COM CAIXAS
     for (let box of colliders) {
         if (box.containsPoint(handWorldPos)) {
             handWorldPos.y = box.max.y + 0.08;
@@ -576,7 +652,6 @@ function processHands(hands) {
     if (isRight) isRightHandTracked = true;
     else isLeftHandTracked = true;
 
-    // FÍSICA DE EMPURRÃO
     if (prevPos.lengthSq() > 0) {
       const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
       if (delta.length() < 0.4) {
@@ -589,14 +664,13 @@ function processHands(hands) {
   });
 }
 
-// ============ INVERSE KINEMATICS ============
 function applyIK(bone, targetWorldPos, isTracked) {
   if (!bone || !isTracked) return;
   const localTarget = bone.parent.worldToLocal(targetWorldPos.clone());
   bone.lookAt(localTarget);
 }
 
-// ============ LOOP A 60FPS ============
+// ============ LOOP NORMAL (SEM XR) ============
 let lastTime = performance.now();
 function animate() {
   requestAnimationFrame(animate);
@@ -605,10 +679,43 @@ function animate() {
   lastTime = now;
 
   if (gameStarted && !isPaused) {
-    if (gyroControls && document.getElementById('toggle-gyro').classList.contains('on')) {
-      gyroControls.update(); 
+    
+    if (!isXRSupported && document.getElementById('toggle-gyro').classList.contains('on')) {
+        camera.rotation.x = gyroData.pitch;
+        camera.rotation.y = -gyroData.roll;
+        camera.rotation.z = 0;
     }
 
+    updatePhysics(dt);
+    updateCamera();
+    updateVisuals(dt);
+    
+    renderer.render(scene, camera);
+  }
+}
+
+// ============ LOOP XR (WEBXR ATIVO) ============
+function animateXR() {
+  if (gameStarted && !isPaused) {
+    const now = performance.now();
+    const dt = Math.min((now - lastTime) / 1000, 0.1); 
+    lastTime = now;
+    
+    updatePhysics(dt);
+    updateVisuals(dt);
+    
+    // Em XR, a câmara é controlada pelo headset
+    // A posição do jogador é aplicada ao grupo do corpo
+    if (myBodyGroup) {
+      myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
+    }
+    
+    renderer.render(scene, camera);
+  }
+}
+
+// ============ FÍSICA (COMUM AOS DOIS LOOPS) ============
+function updatePhysics(dt) {
     const isZeroGravity = document.getElementById('toggle-gravity').classList.contains('on');
     if (!isZeroGravity) playerVel.y -= GRAVITY * dt;
     
@@ -620,7 +727,6 @@ function animate() {
       playerVel.z *= AIR_DRAG; 
     }
 
-    // COLISÃO DO JOGADOR COM O CHÃO
     playerPos.addScaledVector(playerVel, dt);
     if (playerPos.y < 1.6) { 
         playerPos.y = 1.6; 
@@ -629,8 +735,10 @@ function animate() {
     } else { 
         isGrounded = false; 
     }
+}
 
-    // LÓGICA DE CÂMARA
+// ============ CÂMARA (SÓ NO MODO NÃO-XR) ============
+function updateCamera() {
     if (isThirdPerson) {
       const offset = new THREE.Vector3(0, 1.5, 4); 
       offset.applyEuler(new THREE.Euler(0, camera.rotation.y, 0)); 
@@ -639,7 +747,10 @@ function animate() {
     } else {
       camera.position.copy(playerPos);
     }
-    
+}
+
+// ============ VISUAIS (COMUM) ============
+function updateVisuals(dt) {
     if (myBodyGroup) {
       myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
       myBodyGroup.rotation.y = camera.rotation.y; 
@@ -652,7 +763,6 @@ function animate() {
 
     updateSnow(dt);
 
-    // Atualiza jogadores remotos (LERP)
     Object.keys(remotePlayers).forEach(id => {
       const rp = remotePlayers[id];
       if (rp.targetPosition) rp.group.position.lerp(rp.targetPosition, 0.2);
@@ -663,15 +773,11 @@ function animate() {
         rp.group.rotation.y += diff * 0.2;
       }
     });
-
-    renderer.render(scene, camera);
-  }
 }
 
 // ============ OUTROS JOGADORES ============
 function addRemotePlayer(id, player) {
   const group = new THREE.Group();
-  
   const loader = new GLTFLoader();
   loader.load('/gorila.glb', (gltf) => {
     const remoteModel = gltf.scene.clone();
