@@ -159,6 +159,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js'; // GIROSCÓPIO OFICIAL
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
 import { io } from "socket.io-client";
 
@@ -189,9 +190,9 @@ let renderer, scene, camera;
 let isThirdPerson = false;
 
 let networkInterval = null;
-let gyroInterval = null;
+let gyroControls = null; // Controlador Oficial
 
-// Física
+// Física e Colisão
 const playerPos = new THREE.Vector3(0, 1.6, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
 const GRAVITY = 28;           
@@ -200,6 +201,7 @@ const MAX_SPEED = 12;
 const AIR_DRAG = 0.90;        
 const GROUND_FRICTION = 0.75; 
 let isGrounded = false;
+const colliders = []; // Lista de caixas para colisão
 
 // Modelos 3D e Natal
 let myBodyGroup;
@@ -207,10 +209,10 @@ let gorilaModel = null;
 let leftHandBone = null;
 let rightHandBone = null;
 let snowParticles = null;
-const colliders = [];
 
-// Hand Tracking
+// Hand Tracking e Cubos (Mãos Visuais)
 let handLandmarker = null, lastVideoTime = -1;
+let leftHandCube, rightHandCube; // Os cubos verdes/rosa
 const prevLeftPos = new THREE.Vector3();
 const prevRightPos = new THREE.Vector3();
 const virtualLeftHandPos = new THREE.Vector3();
@@ -226,52 +228,27 @@ const peerConnections = {};
 
 document.getElementById('usernameInput').value = myUsername;
 
-// ============ GIROSCÓPIO (O TEU MÉTODO) ============
-function initGyro() {
-  if (gyroInterval) clearInterval(gyroInterval);
-  
-  window.addEventListener("deviceorientation", (event) => {
-    if (isPaused) return;
-    
-    let pitch = event.beta;
-    let roll = event.gamma;
-
-    if (pitch === null || roll === null) return;
-
-    // Limitar os valores
-    pitch = Math.max(-90, Math.min(90, pitch));
-    roll = Math.max(-90, Math.min(90, roll));
-
-    // Movimento em modo paisagem
-    const lookUpDown = THREE.MathUtils.degToRad(pitch);
-    const lookLeftRight = THREE.MathUtils.degToRad(roll);
-
-    // Aplica rotação à câmara
-    camera.rotation.x = lookUpDown;
-    camera.rotation.y = -lookLeftRight; // Invertido para paisagem
-    camera.rotation.z = 0;
-  });
-}
-
 // ============ MENU DE PAUSA E CÂMARA ============
 window.togglePause = () => {
   isPaused = !isPaused;
   const menu = document.getElementById('pause-menu');
   if (isPaused) {
     menu.classList.add('active');
+    if(gyroControls) gyroControls.enabled = false;
   } else {
     menu.classList.remove('active');
+    if(gyroControls) gyroControls.enabled = true;
   }
 };
 
 window.toggleThirdPerson = () => {
   isThirdPerson = !isThirdPerson;
   document.getElementById('camera-mode-text').innerText = isThirdPerson ? "Mudar para 1ª Pessoa" : "Mudar para 3ª Pessoa";
-  togglePause(); // Fecha o menu ao mudar
+  togglePause(); 
 };
 
 window.leaveRoom = () => {
-  window.location.reload(); // Forma simples de sair e voltar ao menu inicial
+  window.location.reload(); 
 };
 
 // ============ SOCKET ============
@@ -377,12 +354,12 @@ function initGame() {
   dirLight.position.set(10, 20, 10);
   scene.add(dirLight);
 
-  // Chão de Neve (Branco)
+  // Chão de Neve (Branco) - COM COLISÃO
   const floor = new THREE.Mesh(new THREE.BoxGeometry(100, 1, 100), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   floor.position.y = -0.5; scene.add(floor);
   colliders.push(new THREE.Box3().setFromObject(floor));
 
-  // Caixas de Gelo
+  // Caixas de Gelo - COM COLISÃO
   const boxMat = new THREE.MeshBasicMaterial({ color: 0xadd8e6 });
   [{ x: 5, z: -5, size: 2 }, { x: -5, z: -8, size: 3 }, { x: 0, z: -12, size: 4 }].forEach(b => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size, b.size, b.size), boxMat);
@@ -401,21 +378,29 @@ function initGame() {
     gorilaModel = gltf.scene;
     myBodyGroup.add(gorilaModel);
     
-    // Procurar ossos
+    // Procurar ossos das mãos
     gorilaModel.traverse((child) => {
       if (child.isBone) {
         if (child.name === 'LeftHand') leftHandBone = child;
         if (child.name === 'RightHand') rightHandBone = child;
       }
     });
-    console.log("Gorila carregado!");
+    console.log("Gorila carregado! Ossos encontrados:", !!leftHandBone, !!rightHandBone);
   }, undefined, (err) => {
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0x888888 }));
     head.position.y = 0.4; myBodyGroup.add(head);
   });
 
-  // Iniciar Giroscópio
-  initGyro();
+  // Cubos das Mãos (Visuais)
+  const handGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+  leftHandCube = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0x00ffaa }));
+  rightHandCube = new THREE.Mesh(handGeo, new THREE.MeshBasicMaterial({ color: 0xff00aa }));
+  scene.add(leftHandCube); 
+  scene.add(rightHandCube);
+
+  // GIROSCÓPIO OFICIAL (Corrige o landscape automaticamente)
+  gyroControls = new DeviceOrientationControls(camera);
+  gyroControls.connect();
 
   initHandTracking();
   
@@ -540,6 +525,7 @@ function processHands(hands) {
 
   hands.forEach((lm, index) => {
     const isRight = index === 1; 
+    const cube = isRight ? rightHandCube : leftHandCube;
     const prevPos = isRight ? prevRightPos : prevLeftPos;
     const virtualPos = isRight ? virtualRightHandPos : virtualLeftHandPos;
 
@@ -551,16 +537,31 @@ function processHands(hands) {
     const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
     const up = new THREE.Vector3(0,1,0);
     
+    // Posição do cubo no mundo (0.5 metros à frente da câmara)
     const handWorldPos = new THREE.Vector3().copy(camera.position)
       .add(forward.clone().multiplyScalar(0.5))
       .add(rightVec.clone().multiplyScalar(ndcX * 0.3))
       .add(up.clone().multiplyScalar(ndcY * 0.3));
 
+    // === COLISÃO DA MÃO COM O CHÃO/CAIXAS ===
+    // Impede que o cubo da mão atravesse o chão (y < 0.075 é metade do tamanho do cubo)
+    if (handWorldPos.y < 0.075) handWorldPos.y = 0.075;
+    
+    // Verifica colisão com as caixas de gelo
+    for (let box of colliders) {
+        if (box.containsPoint(handWorldPos)) {
+            // Empurra a mão para fora da caixa (simplificado: empurra para cima)
+            handWorldPos.y = box.max.y + 0.08;
+        }
+    }
+
+    cube.position.copy(handWorldPos);
     virtualPos.copy(handWorldPos);
+    
     if (isRight) isRightHandTracked = true;
     else isLeftHandTracked = true;
 
-    // Física
+    // Física de empurrão (baseada no movimento da mão)
     if (prevPos.lengthSq() > 0) {
       const delta = new THREE.Vector3().subVectors(handWorldPos, prevPos);
       if (delta.length() < 0.4) {
@@ -573,10 +574,12 @@ function processHands(hands) {
   });
 }
 
-// ============ INVERSE KINEMATICS ============
+// ============ INVERSE KINEMATICS (Mão do Gorila segue o Cubo) ============
 function applyIK(bone, targetWorldPos, isTracked) {
   if (!bone || !isTracked) return;
+  // Converte a posição alvo de World para Local (relativa ao pai do osso)
   const localTarget = bone.parent.worldToLocal(targetWorldPos.clone());
+  // Faz o osso olhar para o cubo
   bone.lookAt(localTarget);
 }
 
@@ -589,6 +592,10 @@ function animate() {
   lastTime = now;
 
   if (gameStarted && !isPaused) {
+    if (gyroControls && document.getElementById('toggle-gyro').classList.contains('on')) {
+      gyroControls.update(); // Atualiza a câmara com o giroscópio oficial
+    }
+
     const isZeroGravity = document.getElementById('toggle-gravity').classList.contains('on');
     if (!isZeroGravity) playerVel.y -= GRAVITY * dt;
     
@@ -600,29 +607,33 @@ function animate() {
       playerVel.z *= AIR_DRAG; 
     }
 
+    // === COLISÃO DO JOGADOR COM O CHÃO ===
     playerPos.addScaledVector(playerVel, dt);
+    if (playerPos.y < 1.6) { 
+        playerPos.y = 1.6; 
+        playerVel.y = 0; 
+        isGrounded = true; 
+    } else { 
+        isGrounded = false; 
+    }
 
-    if (playerPos.y < 1.6) { playerPos.y = 1.6; playerVel.y = 0; isGrounded = true; }
-    else { isGrounded = false; }
-
-    // === LÓGICA DE CÂMARA (1ª vs 3ª Pessoa) ===
+    // === LÓGICA DE CÂMARA ===
     if (isThirdPerson) {
-      // Câmara atrás do jogador
-      const offset = new THREE.Vector3(0, 1.5, 4); // Altura e distância
-      offset.applyEuler(new THREE.Euler(0, camera.rotation.y, 0)); // Segue a rotação Y
+      const offset = new THREE.Vector3(0, 1.5, 4); 
+      offset.applyEuler(new THREE.Euler(0, camera.rotation.y, 0)); 
       camera.position.copy(playerPos).add(offset);
-      // A câmara olha para o jogador
       camera.lookAt(playerPos.x, playerPos.y + 0.5, playerPos.z);
     } else {
-      // 1ª Pessoa
+      // Em 1ª pessoa, a câmara segue o playerPos, mas a rotação é do gyro
+      // O gyroControls já atualiza a rotação da câmara, então só precisamos da posição
       camera.position.copy(playerPos);
     }
     
     if (myBodyGroup) {
       myBodyGroup.position.copy(playerPos).add(new THREE.Vector3(0, -0.4, 0));
-      // Em 3ª pessoa, o corpo roda com a câmara
       myBodyGroup.rotation.y = camera.rotation.y; 
 
+      // === APLICA O IK AOS BRAÇOS DO GORILA ===
       if (gorilaModel) {
         applyIK(leftHandBone, virtualLeftHandPos, isLeftHandTracked);
         applyIK(rightHandBone, virtualRightHandPos, isRightHandTracked);
